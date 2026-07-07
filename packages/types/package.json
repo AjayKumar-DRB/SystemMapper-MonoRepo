@@ -1,0 +1,11 @@
+{
+    "private":  true,
+    "name":  "@systemmapper/types",
+    "version":  "1.0.0",
+    "main": "dist/index.js",
+    "scripts":  {
+                    "lint":  "eslint src/**/*.ts",
+                    "build":  "tsc"
+                }
+}
+

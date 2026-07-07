@@ -1,0 +1,23 @@
+{
+  "private": true,
+  "name": "@systemmapper/database",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "lint": "eslint src/**/*.ts",
+    "build": "tsc",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.14.0",
+    "@systemmapper/shared": "workspace:*",
+    "@systemmapper/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.1",
+    "prisma": "^5.14.0",
+    "typescript": "^5.4.5"
+  }
+}

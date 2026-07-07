@@ -1,0 +1,445 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Enumerations ---
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum ScanStatus {
+  PENDING
+  SCANNING
+  PARSING
+  BUILDING_GRAPH
+  CALCULATING_METRICS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum VcsProvider {
+  GITHUB
+  BITBUCKET
+  GITLAB
+}
+
+// --- Models ---
+
+model User {
+  id              String    @id @default(uuid())
+  supabaseUserId  String    @unique
+  email           String    @unique
+  displayName     String?
+  avatarUrl       String?
+  
+  vcsProvider     VcsProvider @default(GITHUB)
+  vcsUsername     String?   @unique
+  vcsUserId       String?   @unique
+
+  lastLoginAt     DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  memberships     OrganizationMember[]
+  triggeredScans  RepositoryScan[]
+
+  @@index([email])
+  @@index([vcsUsername])
+  @@index([supabaseUserId])
+  @@index([deletedAt])
+}
+
+model Organization {
+  id              String    @id @default(uuid())
+  name            String
+  slug            String    @unique
+  description     String?
+  avatarUrl       String?
+  
+  vcsProvider     VcsProvider @default(GITHUB)
+  vcsOrgName      String?   @unique
+  vcsOrgId        String?   @unique
+
+  plan            String    @default("free")
+  maxRepositories Int       @default(10)
+  maxMembers      Int       @default(5)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  members         OrganizationMember[]
+  repositories    Repository[]
+  installations   VcsInstallation[]
+
+  @@index([slug])
+  @@index([vcsOrgName])
+  @@index([deletedAt])
+}
+
+model OrganizationMember {
+  id              String    @id @default(uuid())
+  organizationId  String
+  userId          String
+  role            Role      @default(MEMBER)
+  
+  invitedBy       String?
+  invitedAt       DateTime  @default(now())
+  acceptedAt      DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model Repository {
+  id              String    @id @default(uuid())
+  organizationId  String
+  name            String
+  fullName        String
+  description     String?
+  
+  vcsProvider     VcsProvider @default(GITHUB)
+  vcsRepoId       String    @unique
+  vcsUrl          String
+  
+  defaultBranch   String    @default("main")
+  language        String?
+  isPrivate       Boolean   @default(false)
+  isActive        Boolean   @default(true)
+  
+  lastScannedAt   DateTime?
+  lastScanId      String?
+  fileCount       Int       @default(0)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  scans           RepositoryScan[]
+  snapshots       ArchitectureSnapshot[]
+  pullRequests    PullRequest[]
+  branches        Branch[]
+  commits         Commit[]
+  settings        RepositorySetting[]
+  riskReports     RiskReport[]
+  blastRadiuses   BlastRadiusReport[]
+  installation    RepositoryInstallation?
+
+  @@unique([organizationId, vcsRepoId])
+  @@index([organizationId])
+  @@index([vcsRepoId])
+  @@index([fullName])
+  @@index([deletedAt])
+}
+
+model VcsInstallation {
+  id                 String    @id @default(uuid())
+  organizationId     String
+  
+  vcsProvider        VcsProvider @default(GITHUB)
+  vcsInstallationId  String    @unique
+  vcsAccountName     String
+  vcsAccountId       String
+  vcsAccountType     String    // "User" or "Organization"
+  
+  accessTokensUrl    String?
+  repositorySelection String   @default("all")
+  permissions        Json?
+  events             Json?
+  
+  isActive           Boolean   @default(true)
+  suspendedAt        DateTime?
+  
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repositories       RepositoryInstallation[]
+
+  @@index([vcsInstallationId])
+  @@index([organizationId])
+}
+
+model RepositoryInstallation {
+  id              String    @id @default(uuid())
+  repositoryId    String    @unique
+  installationId  String
+  isActive        Boolean   @default(true)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  repository      Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  installation    VcsInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  @@index([installationId])
+  @@index([repositoryId])
+}
+
+model RepositoryScan {
+  id                   String    @id @default(uuid())
+  repositoryId         String
+  status               ScanStatus @default(PENDING)
+  
+  branch               String
+  commitSha            String
+  triggerType          String
+  triggeredById        String?
+  
+  totalFiles           Int       @default(0)
+  parsedFiles          Int       @default(0)
+  failedFiles          Int       @default(0)
+  skippedFiles         Int       @default(0)
+  nodesCreated         Int       @default(0)
+  relationshipsCreated Int       @default(0)
+  
+  durationMs           Int?
+  errorMessage         String?
+  errorStack           String?
+  
+  startedAt            DateTime?
+  completedAt          DateTime?
+  
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  repository           Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  triggeredBy          User?      @relation(fields: [triggeredById], references: [id], onDelete: SetNull)
+  
+  snapshot             ArchitectureSnapshot?
+  riskReports          RiskReport[]
+
+  @@index([repositoryId])
+  @@index([commitSha])
+}
+
+model ArchitectureSnapshot {
+  id                      String    @id @default(uuid())
+  repositoryId            String
+  scanId                  String    @unique
+  
+  branch                  String
+  commitSha               String
+  graphVersion            String
+  
+  nodeCount               Int
+  relationshipCount       Int
+  fileCount               Int
+  functionCount           Int
+  classCount              Int
+  dependencyCount         Int
+  circularDependencyCount Int
+  
+  architectureScore       Float?
+  metadata                Json?
+  
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  repository              Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  scan                    RepositoryScan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@index([repositoryId])
+  @@index([commitSha])
+}
+
+model PullRequest {
+  id                String    @id @default(uuid())
+  repositoryId      String
+  
+  vcsPrId           String
+  vcsPrNumber       Int
+  
+  title             String
+  body              String?
+  state             String
+  
+  authorVcsLogin    String
+  authorVcsId       String?
+  
+  baseBranch        String
+  headBranch        String
+  headSha           String
+  
+  changedFilesCount Int       @default(0)
+  additions         Int       @default(0)
+  deletions         Int       @default(0)
+  
+  commentId         String?
+  lastAnalyzedAt    DateTime?
+  vcsUrl            String
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  repository        Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  
+  files             PullRequestFile[]
+  blastRadiuses     BlastRadiusReport[]
+  riskReports       RiskReport[]
+
+  @@unique([repositoryId, vcsPrNumber])
+  @@index([repositoryId])
+  @@index([headSha])
+}
+
+model PullRequestFile {
+  id               String    @id @default(uuid())
+  pullRequestId    String
+  
+  filename         String
+  status           String
+  additions        Int       @default(0)
+  deletions        Int       @default(0)
+  previousFilename String?
+  patch            String?
+  
+  createdAt        DateTime  @default(now())
+
+  pullRequest      PullRequest @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
+
+  @@unique([pullRequestId, filename])
+  @@index([pullRequestId])
+}
+
+model Commit {
+  id               String    @id @default(uuid())
+  repositoryId     String
+  
+  sha              String
+  message          String
+  authorName       String
+  authorEmail      String
+  authorVcsLogin   String?
+  
+  committedAt      DateTime
+  createdAt        DateTime  @default(now())
+
+  repository       Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@unique([repositoryId, sha])
+  @@index([repositoryId])
+  @@index([sha])
+}
+
+model Branch {
+  id               String    @id @default(uuid())
+  repositoryId     String
+  
+  name             String
+  headSha          String
+  isDefault        Boolean   @default(false)
+  isProtected      Boolean   @default(false)
+  lastScannedAt    DateTime?
+  
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  repository       Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@unique([repositoryId, name])
+  @@index([repositoryId])
+}
+
+model RepositorySetting {
+  id               String    @id @default(uuid())
+  repositoryId     String
+  
+  key              String
+  value            String
+  description      String?
+  
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  repository       Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@unique([repositoryId, key])
+  @@index([repositoryId])
+}
+
+model RiskReport {
+  id                          String    @id @default(uuid())
+  repositoryId                String
+  pullRequestId               String?
+  scanId                      String?
+  
+  riskScore                   Float
+  riskLevel                   RiskLevel
+  
+  totalAffectedFiles          Int       @default(0)
+  totalAffectedFunctions      Int       @default(0)
+  totalAffectedClasses        Int       @default(0)
+  maxDependencyDepth          Int       @default(0)
+  circularDependenciesFound   Int       @default(0)
+  architectureViolationsFound Int       @default(0)
+  criticalPathsFound          Int       @default(0)
+  
+  suggestedReviewers          Json?
+  metadata                    Json?
+  
+  analyzedAt                  DateTime  @default(now())
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
+
+  repository                  Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  pullRequest                 PullRequest? @relation(fields: [pullRequestId], references: [id], onDelete: SetNull)
+  scan                        RepositoryScan? @relation(fields: [scanId], references: [id], onDelete: SetNull)
+  
+  blastRadiuses               BlastRadiusReport[]
+
+  @@index([repositoryId])
+  @@index([pullRequestId])
+  @@index([riskLevel])
+}
+
+model BlastRadiusReport {
+  id               String    @id @default(uuid())
+  riskReportId     String
+  repositoryId     String
+  pullRequestId    String?
+  
+  changedFiles     Json
+  affectedFiles    Json
+  affectedFunctions Json
+  affectedClasses  Json
+  dependencyChains Json
+  impactSummary    Json
+  
+  createdAt        DateTime  @default(now())
+
+  riskReport       RiskReport @relation(fields: [riskReportId], references: [id], onDelete: Cascade)
+  repository       Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  pullRequest      PullRequest? @relation(fields: [pullRequestId], references: [id], onDelete: SetNull)
+
+  @@index([riskReportId])
+  @@index([repositoryId])
+}

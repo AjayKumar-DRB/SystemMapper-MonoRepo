@@ -1,0 +1,25 @@
+{
+  "name": "systemmapper",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "docker:up": "docker compose up -d && echo --> Memgraph Lab UI is running at: http://localhost:3003",
+    "docker:down": "docker compose down",
+    "dev": "pnpm docker:up && turbo run dev --ui=tui",
+    "dev:backend": "turbo run dev --filter=api --filter=worker",
+    "dev:worker": "turbo run dev --filter=worker",
+    "dev:web": "turbo run dev --filter=web",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "type-check": "turbo run type-check",
+    "clean": "turbo run clean",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.5",
+    "prettier": "^3.2.5"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

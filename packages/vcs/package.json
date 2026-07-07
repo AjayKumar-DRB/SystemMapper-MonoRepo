@@ -1,0 +1,24 @@
+{
+    "private": true,
+    "name": "@systemmapper/vcs",
+    "version": "1.0.0",
+    "main": "dist/index.js",
+    "scripts": {
+        "lint": "eslint src/**/*.ts",
+        "build": "tsc"
+    },
+    "dependencies": {
+        "@nestjs/common": "^11.0.1",
+        "@octokit/auth-app": "^8.2.0",
+        "@octokit/rest": "^22.0.1",
+        "@octokit/webhooks": "^14.2.0",
+        "@octokit/webhooks-methods": "^6.0.0",
+        "@systemmapper/risk-engine": "workspace:^",
+        "axios": "^1.18.1",
+        "isomorphic-git": "^1.38.6",
+        "jsonwebtoken": "^9.0.3"
+    },
+    "devDependencies": {
+        "@types/jsonwebtoken": "^9.0.10"
+    }
+}

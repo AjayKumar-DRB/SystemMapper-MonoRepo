@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # Infrastructure
+  memgraph:
+    image: memgraph/memgraph-platform:latest
+    container_name: systemmapper-memgraph-prod
+    restart: always
+    ports:
+      - "7687:7687"
+      - "3003:3000"
+    volumes:
+      - memgraph_data:/var/lib/memgraph
+      - memgraph_log:/var/log/memgraph
+
+  redis:
+    image: redis:alpine
+    container_name: systemmapper-redis-prod
+    restart: always
+    ports:
+      - "6379:6379"
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: systemmapper-postgres-prod
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=systemmapper
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Applications
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: systemmapper-api-prod
+    restart: always
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/systemmapper?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MEMGRAPH_HOST=memgraph
+      - MEMGRAPH_PORT=7687
+    depends_on:
+      - postgres
+      - redis
+      - memgraph
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    container_name: systemmapper-worker-prod
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/systemmapper?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MEMGRAPH_HOST=memgraph
+      - MEMGRAPH_PORT=7687
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+    depends_on:
+      - postgres
+      - redis
+      - memgraph
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: systemmapper-web-prod
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      # If deploying to a server, this should be the public IP or Domain of the API
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    depends_on:
+      - api
+
+volumes:
+  memgraph_data:
+  memgraph_log:
+  postgres_data:

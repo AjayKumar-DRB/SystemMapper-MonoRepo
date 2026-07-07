@@ -1,0 +1,14 @@
+{
+    "private": true,
+    "name": "@systemmapper/config",
+    "version": "1.0.0",
+    "main": "dist/index.js",
+    "scripts": {
+        "lint": "eslint src/**/*.ts",
+        "build": "tsc"
+    },
+    "dependencies": {
+        "zod": "^4.4.3"
+    }
+}
+

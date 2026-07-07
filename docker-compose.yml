@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  memgraph:
+    image: memgraph/memgraph-platform:latest
+    container_name: systemmapper-memgraph
+    ports:
+      - "7687:7687" # Bolt Protocol (Memgraph core)
+      - "7444:7444" # HTTP port (Memgraph core)
+      - "3003:3000" # Memgraph Lab UI (Mapped to 3003 to avoid conflicting with API on 3001 and Worker on 3002)
+    volumes:
+      - memgraph_data:/var/lib/memgraph
+      - memgraph_log:/var/log/memgraph
+
+  redis:
+    image: redis:alpine
+    container_name: systemmapper-redis
+    ports:
+      - "6379:6379"
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: systemmapper-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=systemmapper
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  memgraph_data:
+  memgraph_log:
+  postgres_data:
