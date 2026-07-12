@@ -1,4 +1,4 @@
-name: CI
+name: ✅ CI — Lint, Format, Type-check & Build
 
 on:
   push:
@@ -6,9 +6,14 @@ on:
   pull_request:
     branches: ["main"]
 
+# Cancel in-progress runs on the same branch to save runner minutes
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
-    name: Build and Lint
+  ci:
+    name: CI Pipeline
     runs-on: ubuntu-latest
 
     steps:
@@ -44,8 +49,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint codebase
-        run: pnpm turbo run lint
+      # Step 1: Prettier format check
+      # Fails the build if any file is not formatted correctly
+      - name: ✨ Format check (Prettier)
+        run: pnpm format:check
 
-      - name: Build applications
+      # Step 2: ESLint — strict rules, zero warnings tolerated
+      # --max-warnings=0 means even a single warning fails the build
+      - name: 🔍 Lint (ESLint)
+        run: pnpm turbo run lint -- --max-warnings=0
+
+      # Step 3: TypeScript type check across all packages
+      - name: 🔷 Type check (TypeScript)
+        run: pnpm turbo run type-check
+
+      # Step 4: Build all packages and apps
+      # If any package fails to compile, the whole pipeline fails
+      - name: 🔨 Build
         run: pnpm turbo run build

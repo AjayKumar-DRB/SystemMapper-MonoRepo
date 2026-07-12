@@ -1,22 +1,21 @@
 import { RiskReport } from '@systemmapper/risk-engine';
 
 export class MarkdownGenerator {
-  
   static generateBlastRadiusComment(report: RiskReport): string {
-    const { 
-      riskScore, 
-      riskLevel, 
-      blastRadius, 
-      circularDependencies, 
+    const {
+      riskScore,
+      riskLevel,
+      blastRadius,
+      circularDependencies,
       architectureViolations,
-      criticalPath
+      criticalPath,
     } = report;
 
     const emoji = this.getRiskEmoji(riskLevel);
 
     let markdown = `## 🎯 SystemMapper — Blast Radius Analysis\n\n`;
     markdown += `### Risk Level: ${emoji} ${riskLevel} (Score: ${riskScore}/100)\n\n`;
-    
+
     markdown += `| Metric | Value |\n`;
     markdown += `|--------|-------|\n`;
     markdown += `| Affected Files | ${blastRadius.affectedFiles.length} |\n`;
@@ -58,11 +57,16 @@ export class MarkdownGenerator {
 
   private static getRiskEmoji(level: string): string {
     switch (level) {
-      case 'LOW': return '🟢';
-      case 'MEDIUM': return '🟡';
-      case 'HIGH': return '🟠';
-      case 'CRITICAL': return '🔴';
-      default: return '⚪';
+      case 'LOW':
+        return '🟢';
+      case 'MEDIUM':
+        return '🟡';
+      case 'HIGH':
+        return '🟠';
+      case 'CRITICAL':
+        return '🔴';
+      default:
+        return '⚪';
     }
   }
 }

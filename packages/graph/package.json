@@ -1,18 +1,17 @@
 {
-    "private": true,
-    "name": "@systemmapper/graph",
-    "version": "1.0.0",
-    "main": "dist/index.js",
-    "scripts": {
-        "lint": "eslint src/**/*.ts",
-        "build": "tsc"
-    },
-    "dependencies": {
-        "@systemmapper/types": "workspace:^",
-        "neo4j-driver": "^6.1.0"
-    },
-    "devDependencies": {
-        "@types/node": "^26.0.1"
-    }
+  "private": true,
+  "name": "@systemmapper/graph",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "lint": "eslint src/**/*.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@systemmapper/types": "workspace:^",
+    "neo4j-driver": "^6.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.1"
+  }
 }
-

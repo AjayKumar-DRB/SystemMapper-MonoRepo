@@ -1,5 +1,12 @@
 import { ILanguageParser } from '../interfaces/language-parser.interface';
-import { ParsedFile, Language, ImportDeclaration, ClassDeclaration, MethodDeclaration, FunctionDeclaration } from '@systemmapper/types';
+import {
+  ParsedFile,
+  Language,
+  ImportDeclaration,
+  ClassDeclaration,
+  MethodDeclaration,
+  FunctionDeclaration,
+} from '@systemmapper/types';
 import crypto from 'crypto';
 import * as ts from 'typescript';
 
@@ -8,14 +15,9 @@ export class TypeScriptExtractor implements ILanguageParser {
 
   parse(filePath: string, content: string): ParsedFile {
     const startTime = Date.now();
-    
+
     // Use TypeScript Compiler API for robust parsing without native compilation requirements
-    const sourceFile = ts.createSourceFile(
-      filePath,
-      content,
-      ts.ScriptTarget.Latest,
-      true
-    );
+    const sourceFile = ts.createSourceFile(filePath, content, ts.ScriptTarget.Latest, true);
 
     const imports: ImportDeclaration[] = [];
     const classes: ClassDeclaration[] = [];
@@ -25,7 +27,7 @@ export class TypeScriptExtractor implements ILanguageParser {
       if (ts.isImportDeclaration(node)) {
         const source = (node.moduleSpecifier as ts.StringLiteral).text;
         const isExternal = !source.startsWith('.') && !source.startsWith('/');
-        
+
         // Extract named imports: import { A, B } from '...'
         const importedNames: string[] = [];
         const importClause = node.importClause;
@@ -35,7 +37,7 @@ export class TypeScriptExtractor implements ILanguageParser {
           }
           if (importClause.namedBindings) {
             if (ts.isNamedImports(importClause.namedBindings)) {
-              importClause.namedBindings.elements.forEach(el => {
+              importClause.namedBindings.elements.forEach((el) => {
                 importedNames.push(el.name.text);
               });
             } else if (ts.isNamespaceImport(importClause.namedBindings)) {
@@ -43,7 +45,7 @@ export class TypeScriptExtractor implements ILanguageParser {
             }
           }
         }
-        
+
         imports.push({
           source,
           importedNames,
@@ -53,13 +55,14 @@ export class TypeScriptExtractor implements ILanguageParser {
         });
       } else if (ts.isClassDeclaration(node) && node.name) {
         const methods: MethodDeclaration[] = [];
-        
+
         for (const member of node.members) {
           if (ts.isMethodDeclaration(member) && member.name) {
             methods.push({
               name: member.name.getText(sourceFile),
               className: node.name.text,
-              isAsync: member.modifiers?.some(m => m.kind === ts.SyntaxKind.AsyncKeyword) ?? false,
+              isAsync:
+                member.modifiers?.some((m) => m.kind === ts.SyntaxKind.AsyncKeyword) ?? false,
               startLine: sourceFile.getLineAndCharacterOfPosition(member.getStart()).line + 1,
               endLine: sourceFile.getLineAndCharacterOfPosition(member.getEnd()).line + 1,
             });
@@ -68,7 +71,7 @@ export class TypeScriptExtractor implements ILanguageParser {
 
         classes.push({
           name: node.name.text,
-          isExported: node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword) ?? false,
+          isExported: node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword) ?? false,
           methods,
           startLine: sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1,
           endLine: sourceFile.getLineAndCharacterOfPosition(node.getEnd()).line + 1,
@@ -76,8 +79,8 @@ export class TypeScriptExtractor implements ILanguageParser {
       } else if (ts.isFunctionDeclaration(node) && node.name) {
         functions.push({
           name: node.name.text,
-          isExported: node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword) ?? false,
-          isAsync: node.modifiers?.some(m => m.kind === ts.SyntaxKind.AsyncKeyword) ?? false,
+          isExported: node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword) ?? false,
+          isAsync: node.modifiers?.some((m) => m.kind === ts.SyntaxKind.AsyncKeyword) ?? false,
           startLine: sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1,
           endLine: sourceFile.getLineAndCharacterOfPosition(node.getEnd()).line + 1,
         });

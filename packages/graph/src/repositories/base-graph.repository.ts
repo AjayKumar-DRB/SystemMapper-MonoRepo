@@ -26,18 +26,23 @@ export abstract class BaseGraphRepository {
     const builder = new CypherBuilder()
       .merge(label, 'n', `nodeId: $props.nodeId`)
       .set('n += $props');
-      
+
     const { query, params } = builder.withParams({ props: properties }).build();
     await this.runWrite(query, params);
   }
 
-  protected async createRelationship(sourceId: string, targetId: string, type: string, props: Record<string, any> = {}): Promise<void> {
+  protected async createRelationship(
+    sourceId: string,
+    targetId: string,
+    type: string,
+    props: Record<string, any> = {},
+  ): Promise<void> {
     const builder = new CypherBuilder()
       .match('Node', 's', 'nodeId: $sourceId')
       .match('Node', 't', 'nodeId: $targetId')
       .mergeRelationship('s', 't', type)
       .set('r += $props');
-      
+
     const { query, params } = builder.withParams({ sourceId, targetId, props }).build();
     await this.runWrite(query, params);
   }

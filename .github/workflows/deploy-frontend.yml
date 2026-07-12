@@ -1,0 +1,36 @@
+name: 🌐 Deploy — Frontend (Netlify)
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+
+jobs:
+  deploy-frontend:
+    name: Trigger Netlify Deployment
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Validate secrets
+        run: |
+          if [ -z "${{ secrets.NETLIFY_DEPLOY_HOOK_URL }}" ]; then
+            echo "❌ NETLIFY_DEPLOY_HOOK_URL secret is not set. Aborting."
+            exit 1
+          fi
+          echo "✅ Secrets validated."
+
+      - name: Trigger Netlify Deploy Hook
+        run: |
+          echo "🚀 Triggering Netlify deployment..."
+          curl -s -X POST "${{ secrets.NETLIFY_DEPLOY_HOOK_URL }}"
+          echo ""
+          echo "✅ Netlify deployment triggered. Visit your Netlify dashboard to monitor progress."
+          echo "📎 https://app.netlify.com"

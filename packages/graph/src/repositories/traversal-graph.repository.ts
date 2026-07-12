@@ -9,17 +9,21 @@ export class TraversalGraphRepository extends BaseGraphRepository {
   /**
    * Executes the blast radius traversal query to find all dependent files up to a max depth.
    */
-  async getBlastRadius(repositoryId: string, filePath: string, maxDepth: number = 3): Promise<BlastRadiusResult> {
+  async getBlastRadius(
+    repositoryId: string,
+    filePath: string,
+    maxDepth: number = 3,
+  ): Promise<BlastRadiusResult> {
     const query = `
       MATCH (source:File {repositoryId: $repositoryId, filePath: $filePath})
       CALL memgraph.bfs(source, "IMPORTS>", maxDepth) YIELD path
       WITH nodes(path) AS nodes, relationships(path) AS rels
       RETURN collect(distinct nodes) AS nodes, collect(distinct rels) AS edges
     `;
-    
-    // In a real memgraph environment we'd use Memgraph's specific BFS/DFS path finding, 
+
+    // In a real memgraph environment we'd use Memgraph's specific BFS/DFS path finding,
     // or standard neo4j path syntax `MATCH path = (source)-[:IMPORTS*1..maxDepth]->(target)`.
-    
+
     const standardNeo4jQuery = `
       MATCH path = (source:File {repositoryId: $repositoryId, filePath: $filePath})<-[:IMPORTS*1..${maxDepth}]-(target:File)
       WITH nodes(path) AS nodes, relationships(path) AS rels
@@ -29,7 +33,7 @@ export class TraversalGraphRepository extends BaseGraphRepository {
     `;
 
     const results = await this.runQuery<any>(standardNeo4jQuery, { repositoryId, filePath });
-    
+
     if (results.length === 0) {
       return { nodes: [], edges: [] };
     }
@@ -57,15 +61,18 @@ export class TraversalGraphRepository extends BaseGraphRepository {
       OPTIONAL MATCH (n)-[r]->(m)
       RETURN collect(distinct n) as nodes, collect(distinct r) as edges
     `;
-    const results = await this.runQuery<any>(query, { repositoryId, ...(branch ? { branch } : {}) });
+    const results = await this.runQuery<any>(query, {
+      repositoryId,
+      ...(branch ? { branch } : {}),
+    });
     if (results.length === 0) return { nodes: [], edges: [] };
-    
+
     return {
       nodes: results[0].nodes || [],
       edges: results[0].edges || [],
       fileIndex: new Map(),
       adjacencyList: new Map(),
-      reverseAdjacencyList: new Map()
+      reverseAdjacencyList: new Map(),
     };
   }
 
@@ -75,7 +82,7 @@ export class TraversalGraphRepository extends BaseGraphRepository {
    */
   async getSubtreeGraph(repositoryId: string, folderId: string, branch?: string): Promise<any> {
     const branchParam = branch ? { branch } : {};
-    
+
     // Find the root folder node, then collect everything reachable via CONTAINS,
     // plus IMPORTS edges between any file nodes in that subtree.
     const query = `
@@ -87,10 +94,10 @@ export class TraversalGraphRepository extends BaseGraphRepository {
       WHERE m IN subtreeNodes
       RETURN collect(distinct n) AS nodes, collect(distinct r) AS edges
     `;
-    
+
     const results = await this.runQuery<any>(query, { folderId, ...branchParam });
     if (results.length === 0) return { nodes: [], edges: [] };
-    
+
     return {
       nodes: results[0].nodes || [],
       edges: results[0].edges || [],

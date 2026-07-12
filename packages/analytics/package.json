@@ -1,10 +1,10 @@
 ﻿{
-    "private":  true,
-    "name":  "@systemmapper/analytics",
-    "version":  "1.0.0",
-    "main":  "src/index.ts",
-    "scripts":  {
-                    "lint":  "eslint src/**/*.ts",
-                    "build":  "tsc"
-                }
+  "private": true,
+  "name": "@systemmapper/analytics",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "scripts": {
+    "lint": "eslint src/**/*.ts",
+    "build": "tsc"
+  }
 }

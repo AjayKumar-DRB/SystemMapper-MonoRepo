@@ -3,11 +3,12 @@ import { CriticalPathResult, RiskAnalysisInput, StrategyContext } from '../types
 
 export class CriticalPathStrategy implements IRiskStrategy<CriticalPathResult> {
   name = 'critical-path';
-  description = 'Identifies whether the changed files are on the critical path (longest dependency chain) of the repository.';
+  description =
+    'Identifies whether the changed files are on the critical path (longest dependency chain) of the repository.';
 
   analyze(input: RiskAnalysisInput, context: StrategyContext): CriticalPathResult {
     const { dependencyGraph, changedFiles } = input;
-    
+
     // For MVP, we will use a simplified longest-path algorithm for DAGs.
     // Assuming the graph is mostly a DAG (cycles are handled separately).
     const inDegrees = new Map<string, number>();
@@ -20,7 +21,7 @@ export class CriticalPathStrategy implements IRiskStrategy<CriticalPathResult> {
       inDegrees.set(nodeId, 0);
       distances.set(nodeId, 0);
     }
-    
+
     // Calculate in-degrees
     for (const [u, neighbors] of dependencyGraph.adjacencyList.entries()) {
       for (const v of neighbors) {
@@ -76,10 +77,14 @@ export class CriticalPathStrategy implements IRiskStrategy<CriticalPathResult> {
     }
 
     // Check if any changed files are on this path
-    const changedFileIds = new Set(changedFiles.map(f => {
-      const node = dependencyGraph.fileIndex.get(f.filePath);
-      return node ? node.id : null;
-    }).filter(Boolean));
+    const changedFileIds = new Set(
+      changedFiles
+        .map((f) => {
+          const node = dependencyGraph.fileIndex.get(f.filePath);
+          return node ? node.id : null;
+        })
+        .filter(Boolean),
+    );
 
     const changedFilesOnCriticalPath: string[] = [];
     for (const nodeId of criticalPath) {
@@ -92,7 +97,7 @@ export class CriticalPathStrategy implements IRiskStrategy<CriticalPathResult> {
       criticalPaths: criticalPath.length > 0 ? [criticalPath] : [],
       criticalPathLength: maxDistance,
       changedFilesOnCriticalPath,
-      isOnCriticalPath: changedFilesOnCriticalPath.length > 0
+      isOnCriticalPath: changedFilesOnCriticalPath.length > 0,
     };
   }
 }

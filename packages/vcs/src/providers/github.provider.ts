@@ -31,7 +31,11 @@ export class GithubProvider implements IVcsProvider {
     return installationAuthentication.token;
   }
 
-  async verifyWebhookSignature(payload: string, signature: string, secret: string): Promise<boolean> {
+  async verifyWebhookSignature(
+    payload: string,
+    signature: string,
+    secret: string,
+  ): Promise<boolean> {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore - @octokit/webhooks-methods is ESM-only; dynamic import works at runtime
     const { verify } = await import('@octokit/webhooks-methods');
@@ -50,7 +54,13 @@ export class GithubProvider implements IVcsProvider {
     return response.data.tree;
   }
 
-  async fetchFileContent(owner: string, repo: string, path: string, sha: string, token?: string): Promise<string> {
+  async fetchFileContent(
+    owner: string,
+    repo: string,
+    path: string,
+    sha: string,
+    token?: string,
+  ): Promise<string> {
     const { Octokit } = await import('@octokit/rest');
     const octokit = token ? new Octokit({ auth: token }) : new Octokit();
     const response = await octokit.rest.repos.getContent({
@@ -80,9 +90,7 @@ export class GithubProvider implements IVcsProvider {
     const { branch, depth = 1, token } = options;
     const url = `https://github.com/${owner}/${repo}.git`;
 
-    const onAuth = token
-      ? () => ({ username: token, password: 'x-oauth-basic' })
-      : undefined;
+    const onAuth = token ? () => ({ username: token, password: 'x-oauth-basic' }) : undefined;
 
     await git.clone({
       fs,
@@ -98,14 +106,20 @@ export class GithubProvider implements IVcsProvider {
 
     // List all remote branches cached by the clone
     const branches = await git.listBranches({ fs, dir: destPath, remote: 'origin' });
-    return { branches: branches.filter(b => b !== 'HEAD') };
+    return { branches: branches.filter((b) => b !== 'HEAD') };
   }
 
   async checkoutBranch(dir: string, branch: string): Promise<void> {
     await git.checkout({ fs, dir, ref: branch });
   }
 
-  async postPullRequestComment(owner: string, repo: string, prNumber: number, body: string, token: string): Promise<string> {
+  async postPullRequestComment(
+    owner: string,
+    repo: string,
+    prNumber: number,
+    body: string,
+    token: string,
+  ): Promise<string> {
     const { Octokit } = await import('@octokit/rest');
     const octokit = new Octokit({ auth: token });
     const response = await octokit.rest.issues.createComment({
@@ -117,7 +131,13 @@ export class GithubProvider implements IVcsProvider {
     return response.data.id.toString();
   }
 
-  async updatePullRequestComment(owner: string, repo: string, commentId: string, body: string, token: string): Promise<void> {
+  async updatePullRequestComment(
+    owner: string,
+    repo: string,
+    commentId: string,
+    body: string,
+    token: string,
+  ): Promise<void> {
     const { Octokit } = await import('@octokit/rest');
     const octokit = new Octokit({ auth: token });
     await octokit.rest.issues.updateComment({
@@ -128,7 +148,12 @@ export class GithubProvider implements IVcsProvider {
     });
   }
 
-  async getPullRequestComments(owner: string, repo: string, prNumber: number, token: string): Promise<Array<{ id: string, body: string, user: string }>> {
+  async getPullRequestComments(
+    owner: string,
+    repo: string,
+    prNumber: number,
+    token: string,
+  ): Promise<Array<{ id: string; body: string; user: string }>> {
     const { Octokit } = await import('@octokit/rest');
     const octokit = new Octokit({ auth: token });
     const response = await octokit.rest.issues.listComments({
@@ -136,15 +161,28 @@ export class GithubProvider implements IVcsProvider {
       repo,
       issue_number: prNumber,
     });
-    
-    return response.data.map(comment => ({
+
+    return response.data.map((comment) => ({
       id: comment.id.toString(),
       body: comment.body || '',
-      user: comment.user?.login || 'unknown'
+      user: comment.user?.login || 'unknown',
     }));
   }
 
-  async getPullRequestFiles(owner: string, repo: string, prNumber: number, token: string): Promise<Array<{ filename: string, status: string, additions: number, deletions: number, previous_filename?: string }>> {
+  async getPullRequestFiles(
+    owner: string,
+    repo: string,
+    prNumber: number,
+    token: string,
+  ): Promise<
+    Array<{
+      filename: string;
+      status: string;
+      additions: number;
+      deletions: number;
+      previous_filename?: string;
+    }>
+  > {
     const { Octokit } = await import('@octokit/rest');
     const octokit = new Octokit({ auth: token });
     const response = await octokit.rest.pulls.listFiles({
@@ -153,12 +191,12 @@ export class GithubProvider implements IVcsProvider {
       pull_number: prNumber,
     });
 
-    return response.data.map(file => ({
+    return response.data.map((file) => ({
       filename: file.filename,
       status: file.status,
       additions: file.additions,
       deletions: file.deletions,
-      previous_filename: file.previous_filename
+      previous_filename: file.previous_filename,
     }));
   }
 }

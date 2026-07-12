@@ -1,13 +1,18 @@
-import { 
-  ParsedFile, 
-  ClassDeclaration, 
-  FunctionDeclaration, 
+import {
+  ParsedFile,
+  ClassDeclaration,
+  FunctionDeclaration,
   MethodDeclaration,
-  ImportDeclaration
+  ImportDeclaration,
 } from '@systemmapper/types';
 
 export class NodeBuilder {
-  static buildDirectoryNode(repositoryId: string, dirPath: string, scanId: string, branch?: string) {
+  static buildDirectoryNode(
+    repositoryId: string,
+    dirPath: string,
+    scanId: string,
+    branch?: string,
+  ) {
     const nodeId = `${repositoryId}:${branch || 'default'}:Folder:${dirPath}`;
     return {
       nodeId,
@@ -20,7 +25,12 @@ export class NodeBuilder {
     };
   }
 
-  static buildFileNode(repositoryId: string, parsedFile: ParsedFile, scanId: string, branch?: string) {
+  static buildFileNode(
+    repositoryId: string,
+    parsedFile: ParsedFile,
+    scanId: string,
+    branch?: string,
+  ) {
     const nodeId = `${repositoryId}:${branch || 'default'}:File:${parsedFile.filePath}`;
     return {
       nodeId,
@@ -37,7 +47,13 @@ export class NodeBuilder {
     };
   }
 
-  static buildClassNode(repositoryId: string, classDecl: ClassDeclaration, filePath: string, scanId: string, branch?: string) {
+  static buildClassNode(
+    repositoryId: string,
+    classDecl: ClassDeclaration,
+    filePath: string,
+    scanId: string,
+    branch?: string,
+  ) {
     const nodeId = `${repositoryId}:${branch || 'default'}:Class:${filePath}:${classDecl.name}`;
     return {
       nodeId,
@@ -54,7 +70,14 @@ export class NodeBuilder {
     };
   }
 
-  static buildMethodNode(repositoryId: string, methodDecl: MethodDeclaration, filePath: string, className: string, scanId: string, branch?: string) {
+  static buildMethodNode(
+    repositoryId: string,
+    methodDecl: MethodDeclaration,
+    filePath: string,
+    className: string,
+    scanId: string,
+    branch?: string,
+  ) {
     const nodeId = `${repositoryId}:${branch || 'default'}:Method:${filePath}:${className}.${methodDecl.name}`;
     return {
       nodeId,
@@ -71,7 +94,13 @@ export class NodeBuilder {
     };
   }
 
-  static buildFunctionNode(repositoryId: string, funcDecl: FunctionDeclaration, filePath: string, scanId: string, branch?: string) {
+  static buildFunctionNode(
+    repositoryId: string,
+    funcDecl: FunctionDeclaration,
+    filePath: string,
+    scanId: string,
+    branch?: string,
+  ) {
     const nodeId = `${repositoryId}:${branch || 'default'}:Function:${filePath}:${funcDecl.name}`;
     return {
       nodeId,

@@ -5,26 +5,29 @@ SystemMapper is an advanced, automated architectural visualization tool. It scan
 Built with performance and scalability in mind, it utilizes an asynchronous worker architecture to handle massive monorepos and relies on an in-memory graph database (Memgraph) for lightning-fast topological querying.
 
 ## 🚀 Tech Stack
-* **Frontend**: Next.js (App Router), React Flow, Cytoscape.js, TailwindCSS
-* **Backend API**: NestJS, REST
-* **Background Worker**: NestJS, BullMQ, Babel AST Parser
-* **Databases**: 
-  * **Memgraph**: Core graph database for mapping code architecture
-  * **PostgreSQL**: Relational storage for repository metadata
-  * **Redis**: Message broker for BullMQ job queues
-* **Architecture**: Turborepo (Monorepo), Docker
+
+- **Frontend**: Next.js (App Router), React Flow, Cytoscape.js, TailwindCSS
+- **Backend API**: NestJS, REST
+- **Background Worker**: NestJS, BullMQ, Babel AST Parser
+- **Databases**:
+  - **Memgraph**: Core graph database for mapping code architecture
+  - **PostgreSQL**: Relational storage for repository metadata
+  - **Redis**: Message broker for BullMQ job queues
+- **Architecture**: Turborepo (Monorepo), Docker
 
 ---
 
 ## 💻 Local Development
 
 1. **Install dependencies:**
+
    ```bash
    pnpm install
    ```
 
 2. **Start the databases:**
    Ensure Docker is running, then spin up Memgraph, Postgres, and Redis:
+
    ```bash
    docker compose up -d
    ```
@@ -67,7 +70,7 @@ Oracle Cloud offers a generous "Always Free" tier providing an ARM VM with 4 Cor
    ```bash
    docker compose -f docker-compose.prod.yml up -d --build api worker memgraph postgres redis
    ```
-   *Your API is now running at `http://<YOUR_ORACLE_PUBLIC_IP>:3001`*
+   _Your API is now running at `http://<YOUR_ORACLE_PUBLIC_IP>:3001`_
 
 ### Part 2: Frontend (Netlify)
 
@@ -77,13 +80,13 @@ Netlify provides highly optimized, free hosting for Next.js applications.
 2. **Connect to GitHub** and select your `SystemMapper` repository.
 3. **Configure Build Settings**:
    Because this is a Turborepo monorepo, configure the exact settings below:
-   * **Base directory**: `apps/web`
-   * **Build command**: `pnpm run build`
-   * **Publish directory**: `.next`
+   - **Base directory**: `apps/web`
+   - **Build command**: `pnpm run build`
+   - **Publish directory**: `.next`
 4. **Add Environment Variables**:
    Click "Add environment variables" and add the following so your frontend knows how to talk to your Oracle backend:
-   * **Key**: `NEXT_PUBLIC_API_URL`
-   * **Value**: `http://<YOUR_ORACLE_PUBLIC_IP>:3001`
+   - **Key**: `NEXT_PUBLIC_API_URL`
+   - **Value**: `http://<YOUR_ORACLE_PUBLIC_IP>:3001`
 5. **Deploy**: Click **Deploy Site**.
 
 Netlify will automatically build the Next.js app and assign you a live URL. Your fully deployed, distributed architecture is now live for free!

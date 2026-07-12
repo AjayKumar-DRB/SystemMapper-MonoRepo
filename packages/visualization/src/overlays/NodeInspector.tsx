@@ -35,15 +35,17 @@ export const NodeInspector: React.FC<NodeInspectorProps> = ({ node, onClose }) =
         >
           <div className="w-[300px] bg-white rounded-lg shadow-xl shadow-slate-200/50 border border-slate-200 overflow-hidden z-50 absolute top-6 left-6 font-sans">
             <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
-              <h3 className="m-0 text-sm text-slate-900 font-semibold">{node.type.toUpperCase()}</h3>
-              <button 
+              <h3 className="m-0 text-sm text-slate-900 font-semibold">
+                {node.type.toUpperCase()}
+              </h3>
+              <button
                 onClick={onClose}
                 className="bg-transparent border-none cursor-pointer text-slate-500 hover:text-slate-700 transition-colors"
               >
                 ✕
               </button>
             </div>
-            
+
             <div className="p-4">
               <div className="mb-3">
                 <div className="text-xs text-slate-500 mb-1">Name / Path</div>

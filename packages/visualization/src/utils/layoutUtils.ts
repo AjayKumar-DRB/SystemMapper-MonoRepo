@@ -23,35 +23,38 @@ const buildHierarchy = (elements: ElementDefinition[]): Map<string, string[]> =>
 /**
  * Calculate the depth level of each node in the hierarchy
  */
-const calculateNodeLevels = (elements: ElementDefinition[], hierarchy: Map<string, string[]>): Map<string, number> => {
+const calculateNodeLevels = (
+  elements: ElementDefinition[],
+  hierarchy: Map<string, string[]>,
+): Map<string, number> => {
   const levels = new Map<string, number>();
-  
+
   // Find all children
   const allChildren = new Set<string>();
   for (const children of hierarchy.values()) {
-    children.forEach(c => allChildren.add(c));
+    children.forEach((c) => allChildren.add(c));
   }
 
   // Roots are nodes that are not children
   const roots = elements
-    .filter(el => !el.data.source && !el.data.target)
-    .filter(el => !allChildren.has(el.data.id!));
+    .filter((el) => !el.data.source && !el.data.target)
+    .filter((el) => !allChildren.has(el.data.id!));
 
   const calculateLevel = (nodeId: string, currentLevel: number) => {
     if (levels.has(nodeId) && levels.get(nodeId)! >= currentLevel) {
       return; // Already processed at this or deeper level
     }
-    
+
     levels.set(nodeId, currentLevel);
 
     const children = hierarchy.get(nodeId) || [];
-    children.forEach(childId => {
+    children.forEach((childId) => {
       calculateLevel(childId, currentLevel + 1);
     });
   };
 
-  roots.forEach(root => calculateLevel(root.data.id!, 0));
-  
+  roots.forEach((root) => calculateLevel(root.data.id!, 0));
+
   return levels;
 };
 
@@ -60,10 +63,10 @@ const calculateNodeLevels = (elements: ElementDefinition[], hierarchy: Map<strin
  */
 export const traceToRoot = (nodeId: string, elements: ElementDefinition[]): string[] => {
   const path: string[] = [nodeId];
-  
+
   // Build child -> parent map
   const parentMap = new Map<string, string>();
-  elements.forEach(edge => {
+  elements.forEach((edge) => {
     if (edge.data.source && edge.data.target && edge.data.type === 'CONTAINS') {
       parentMap.set(edge.data.target, edge.data.source);
     }
@@ -81,13 +84,12 @@ export const traceToRoot = (nodeId: string, elements: ElementDefinition[]): stri
 
 export const layoutHierarchicalGraph = (
   elements: ElementDefinition[],
-  layoutDir: "LR" | "TB",
-  collapsedNodes: Set<string>
+  layoutDir: 'LR' | 'TB',
+  collapsedNodes: Set<string>,
 ): ElementDefinition[] => {
-  
-  const nodes = elements.filter(el => !el.data.source && !el.data.target);
-  const edges = elements.filter(el => el.data.source && el.data.target);
-  
+  const nodes = elements.filter((el) => !el.data.source && !el.data.target);
+  const edges = elements.filter((el) => el.data.source && el.data.target);
+
   const hierarchy = buildHierarchy(edges);
   const nodeLevels = calculateNodeLevels(nodes, hierarchy);
 
@@ -96,7 +98,7 @@ export const layoutHierarchicalGraph = (
   nodes.forEach((node) => {
     const path = traceToRoot(node.data.id!, elements);
     const hasCollapsedAncestor = path.some(
-      (ancestorId) => ancestorId !== node.data.id && collapsedNodes.has(ancestorId)
+      (ancestorId) => ancestorId !== node.data.id && collapsedNodes.has(ancestorId),
     );
 
     if (!hasCollapsedAncestor) {
@@ -115,7 +117,7 @@ export const layoutHierarchicalGraph = (
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   dagreGraph.setGraph({
     rankdir: layoutDir,
-    ranker: "network-simplex", // Far more robust for large, cyclic codebases
+    ranker: 'network-simplex', // Far more robust for large, cyclic codebases
     nodesep: 100, // Horizontal spacing between nodes
     ranksep: 150, // Vertical spacing between levels
     edgesep: 50,
@@ -125,7 +127,8 @@ export const layoutHierarchicalGraph = (
 
   // Add all visible nodes with rank constraint
   visibleNodes.forEach((node) => {
-    const isFolder = node.data.type === "folder" || node.data.type === "directory" || node.data.type === "project";
+    const isFolder =
+      node.data.type === 'folder' || node.data.type === 'directory' || node.data.type === 'project';
     const level = nodeLevels.get(node.data.id!) || 0;
 
     dagreGraph.setNode(node.data.id!, {
@@ -133,12 +136,12 @@ export const layoutHierarchicalGraph = (
       width: 180,
       height: isFolder ? 60 : 50,
       // We explicitly DO NOT force rank here for network-simplex on massive cyclic graphs
-      // rank: level, 
+      // rank: level,
     });
   });
 
   // Add structural edges to Dagre (CONTAINS)
-  const containsEdges = edges.filter(e => e.data.type === 'CONTAINS');
+  const containsEdges = edges.filter((e) => e.data.type === 'CONTAINS');
   containsEdges.forEach((edge) => {
     if (visibleNodeIds.has(edge.data.source!) && visibleNodeIds.has(edge.data.target!)) {
       try {
@@ -150,7 +153,7 @@ export const layoutHierarchicalGraph = (
   });
 
   // Filter and add functional edges
-  const functionalEdges = edges.filter(e => e.data.type !== 'CONTAINS');
+  const functionalEdges = edges.filter((e) => e.data.type !== 'CONTAINS');
   functionalEdges.forEach((edge) => {
     if (visibleNodeIds.has(edge.data.source!) && visibleNodeIds.has(edge.data.target!)) {
       try {
@@ -166,13 +169,13 @@ export const layoutHierarchicalGraph = (
   try {
     dagre.layout(dagreGraph);
   } catch (error) {
-    console.error("❌ Hierarchical layout failed (fallback to original elements):", error);
+    console.error('❌ Hierarchical layout failed (fallback to original elements):', error);
     layoutSuccess = false;
   }
 
   // Update original elements array with positions
   const updatedElements: ElementDefinition[] = [];
-  
+
   // Add visible nodes with their calculated positions (or defaults)
   visibleNodes.forEach((node, i) => {
     if (layoutSuccess) {
@@ -185,14 +188,14 @@ export const layoutHierarchicalGraph = (
         return;
       }
     }
-    
+
     // Fallback: Just spread them out so they don't overlap totally
     updatedElements.push({
       ...node,
       position: { x: (i % 20) * 150, y: Math.floor(i / 20) * 100 },
     });
   });
-  
+
   // Add edges between visible nodes
   edges.forEach((edge) => {
     if (visibleNodeIds.has(edge.data.source!) && visibleNodeIds.has(edge.data.target!)) {

@@ -45,7 +45,12 @@ export class CypherBuilder {
     return this;
   }
 
-  mergeRelationship(sourceAlias: string, targetAlias: string, type: string, matchProps?: string): this {
+  mergeRelationship(
+    sourceAlias: string,
+    targetAlias: string,
+    type: string,
+    matchProps?: string,
+  ): this {
     const propsString = matchProps ? ` {${matchProps}}` : '';
     this.queryParts.push(`MERGE (${sourceAlias})-[r:${type}${propsString}]->(${targetAlias})`);
     return this;

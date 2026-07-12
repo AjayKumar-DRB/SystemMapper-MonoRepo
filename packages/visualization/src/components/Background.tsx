@@ -17,7 +17,7 @@ export const Background: React.FC<BackgroundProps> = ({
   size = 1.2,
   color = '#cbd5e1', // slate-300
   backgroundColor = '#f8fafc', // slate-50
-  children
+  children,
 }) => {
   const scaledGap = gap * zoom;
   // We need to calculate the offset precisely so the dots move 1:1 with the canvas pan
@@ -34,7 +34,7 @@ export const Background: React.FC<BackgroundProps> = ({
         backgroundSize: `${scaledGap}px ${scaledGap}px`,
         backgroundPosition: `${xOffset}px ${yOffset}px`,
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
       }}
     >
       {children}

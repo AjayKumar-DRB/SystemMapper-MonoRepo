@@ -3,19 +3,24 @@ import { CircularDependencyResult, Cycle, RiskAnalysisInput, StrategyContext } f
 
 export class CircularDependencyStrategy implements IRiskStrategy<CircularDependencyResult> {
   name = 'circular-dependency';
-  description = 'Detects circular dependencies involving the changed files using Tarjan SCC algorithm.';
+  description =
+    'Detects circular dependencies involving the changed files using Tarjan SCC algorithm.';
 
   analyze(input: RiskAnalysisInput, context: StrategyContext): CircularDependencyResult {
     const { dependencyGraph, changedFiles } = input;
-    
+
     // We will find all cycles in the graph and see if any changed file is part of them.
     // In a massive graph, we'd limit Tarjan's to a subgraph, but here we run it on the provided dependencyGraph.
     const cycles = this.findCycles(dependencyGraph.adjacencyList);
-    
-    const changedFileIds = new Set(changedFiles.map(f => {
-      const node = dependencyGraph.fileIndex.get(f.filePath);
-      return node ? node.id : null;
-    }).filter(Boolean));
+
+    const changedFileIds = new Set(
+      changedFiles
+        .map((f) => {
+          const node = dependencyGraph.fileIndex.get(f.filePath);
+          return node ? node.id : null;
+        })
+        .filter(Boolean),
+    );
 
     let newCyclesIntroduced = false;
     const changedFilesInCycles = new Set<string>();
@@ -26,7 +31,7 @@ export class CircularDependencyStrategy implements IRiskStrategy<CircularDepende
           changedFilesInCycles.add(nodeId);
           // Simplified logic: assume if a changed file is in a cycle, it might have contributed to it.
           // True historical tracking requires comparing previous graph state.
-          newCyclesIntroduced = true; 
+          newCyclesIntroduced = true;
         }
       }
     }
@@ -35,7 +40,7 @@ export class CircularDependencyStrategy implements IRiskStrategy<CircularDepende
       cycles,
       cycleCount: cycles.length,
       changedFilesInCycles: Array.from(changedFilesInCycles),
-      newCyclesIntroduced
+      newCyclesIntroduced,
     };
   }
 
@@ -73,7 +78,7 @@ export class CircularDependencyStrategy implements IRiskStrategy<CircularDepende
           onStack.delete(w);
           scc.push(w);
         } while (w !== v);
-        
+
         // Only SCCs with size > 1 are cycles (ignoring self-loops)
         if (scc.length > 1) {
           sccs.push({ nodes: scc });

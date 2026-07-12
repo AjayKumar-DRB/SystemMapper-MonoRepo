@@ -11,7 +11,8 @@ export class WebhooksService {
 
   constructor(
     @InjectQueue(QueueNames.SCAN) private readonly scanQueue: Queue,
-    @InjectQueue(QueueNames.BLAST_RADIUS) private readonly blastRadiusQueue: Queue,
+    @InjectQueue(QueueNames.BLAST_RADIUS)
+    private readonly blastRadiusQueue: Queue,
   ) {
     // In a real app, appId and privateKey would be injected via ConfigService
     this.githubProvider = new GithubProvider(
@@ -62,7 +63,9 @@ export class WebhooksService {
       return;
     }
 
-    this.logger.log(`Queueing full scan for repository: ${payload.repository.full_name}`);
+    this.logger.log(
+      `Queueing full scan for repository: ${payload.repository.full_name}`,
+    );
     await this.scanQueue.add('repository-scan', {
       repositoryId: payload.repository.id.toString(), // Needs mapping to internal DB ID eventually
       vcsRepoId: payload.repository.id.toString(),
@@ -77,7 +80,9 @@ export class WebhooksService {
       return;
     }
 
-    this.logger.log(`Queueing blast radius analysis for PR #${payload.pull_request.number}`);
+    this.logger.log(
+      `Queueing blast radius analysis for PR #${payload.pull_request.number}`,
+    );
     await this.blastRadiusQueue.add('blast-radius-analysis', {
       repositoryId: payload.repository.id.toString(),
       vcsRepoId: payload.repository.id.toString(),

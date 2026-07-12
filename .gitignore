@@ -1,3 +1,11 @@
+# Internal architecture docs — not for public repo
+architecture/
+all_architecture_docs.md
+old_ui_graph_algo_report.md
+tasks.md
+port_config.md
+Memgraph
+
 # Logs
 logs
 *.log

@@ -6,7 +6,7 @@ export class MemgraphDriver {
   static initialize(
     uri: string = process.env.MEMGRAPH_URI || 'bolt://localhost:7687',
     username: string = process.env.MEMGRAPH_USERNAME || '',
-    password: string = process.env.MEMGRAPH_PASSWORD || ''
+    password: string = process.env.MEMGRAPH_PASSWORD || '',
   ): Driver {
     if (!this.instance) {
       this.instance = neo4j.driver(uri, neo4j.auth.basic(username, password), {

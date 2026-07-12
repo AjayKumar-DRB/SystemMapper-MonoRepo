@@ -9,8 +9,12 @@ import { graphStylesheet } from '../utils/graphStyles';
 
 // Register layout extensions once
 if (typeof window !== 'undefined') {
-  try { cytoscape.use(dagre); } catch {}
-  try { cytoscape.use(elk); } catch {}
+  try {
+    cytoscape.use(dagre);
+  } catch {}
+  try {
+    cytoscape.use(elk);
+  } catch {}
 }
 
 export interface BreadcrumbItem {
@@ -27,7 +31,11 @@ export interface CanvasProps {
   breadcrumb?: BreadcrumbItem[];
   onFolderDrillDown?: (folderId: string, folderLabel: string) => void;
   onBreadcrumbNavigate?: (folderId: string | null) => void;
-  renderOverlay?: (cy: cytoscape.Core | null, layoutDir: 'TB' | 'LR', setLayoutDir: (dir: 'TB' | 'LR') => void) => React.ReactNode;
+  renderOverlay?: (
+    cy: cytoscape.Core | null,
+    layoutDir: 'TB' | 'LR',
+    setLayoutDir: (dir: 'TB' | 'LR') => void,
+  ) => React.ReactNode;
 }
 
 export const Canvas: React.FC<CanvasProps> = ({
@@ -56,7 +64,9 @@ export const Canvas: React.FC<CanvasProps> = ({
     } catch (err) {
       console.warn('Failed to initialize Web Worker, layout will run on main thread', err);
     }
-    return () => { workerRef.current?.terminate(); };
+    return () => {
+      workerRef.current?.terminate();
+    };
   }, []);
 
   useEffect(() => {
@@ -94,7 +104,11 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
         setIsLayouting(false);
       };
-      workerRef.current.postMessage({ elements, layoutDir, collapsedNodesArray: Array.from(currentCollapsed) });
+      workerRef.current.postMessage({
+        elements,
+        layoutDir,
+        collapsedNodesArray: Array.from(currentCollapsed),
+      });
     } else {
       import('../utils/layoutUtils').then(({ layoutHierarchicalGraph }) => {
         setTimeout(() => {
@@ -107,29 +121,39 @@ export const Canvas: React.FC<CanvasProps> = ({
   }, [elements, layoutDir, viewMode]);
 
   // Handle double-click: in component view drill down into folder; in project view collapse
-  const handleNodeDoubleClick = useCallback((e: cytoscape.EventObject) => {
-    const node = e.target;
-    const nodeType = node.data('type');
-    const nodeId = node.id();
+  const handleNodeDoubleClick = useCallback(
+    (e: cytoscape.EventObject) => {
+      const node = e.target;
+      const nodeType = node.data('type');
+      const nodeId = node.id();
 
-    if (viewMode === 'component' && (nodeType === 'folder' || nodeType === 'directory')) {
-      // Drill down into this folder
-      onFolderDrillDown?.(nodeId, node.data('label') || nodeId);
-    } else if (viewMode === 'project') {
-      setCollapsedNodes(prev => {
-        const next = new Set(prev);
-        if (next.has(nodeId)) { next.delete(nodeId); } else { next.add(nodeId); }
-        return next;
-      });
-    }
-  }, [viewMode, onFolderDrillDown]);
+      if (viewMode === 'component' && (nodeType === 'folder' || nodeType === 'directory')) {
+        // Drill down into this folder
+        onFolderDrillDown?.(nodeId, node.data('label') || nodeId);
+      } else if (viewMode === 'project') {
+        setCollapsedNodes((prev) => {
+          const next = new Set(prev);
+          if (next.has(nodeId)) {
+            next.delete(nodeId);
+          } else {
+            next.add(nodeId);
+          }
+          return next;
+        });
+      }
+    },
+    [viewMode, onFolderDrillDown],
+  );
 
   // Handle single click to trace path to root
-  const handleNodeClick = useCallback((e: cytoscape.EventObject) => {
-    const node = e.target;
-    const path = traceToRoot(node.id(), elements);
-    setSelectedPath(path);
-  }, [elements]);
+  const handleNodeClick = useCallback(
+    (e: cytoscape.EventObject) => {
+      const node = e.target;
+      const path = traceToRoot(node.id(), elements);
+      setSelectedPath(path);
+    },
+    [elements],
+  );
 
   // Highlight selected path
   useEffect(() => {
@@ -137,9 +161,11 @@ export const Canvas: React.FC<CanvasProps> = ({
     const cy = cyRef.current;
     cy.elements().removeClass('highlighted');
     if (selectedPath.length > 0) {
-      selectedPath.forEach(nodeId => cy.getElementById(nodeId).addClass('highlighted'));
+      selectedPath.forEach((nodeId) => cy.getElementById(nodeId).addClass('highlighted'));
       for (let i = 0; i < selectedPath.length - 1; i++) {
-        cy.edges(`[source = "${selectedPath[i+1]}"][target = "${selectedPath[i]}"]`).addClass('highlighted');
+        cy.edges(`[source = "${selectedPath[i + 1]}"][target = "${selectedPath[i]}"]`).addClass(
+          'highlighted',
+        );
       }
     }
   }, [selectedPath, layoutedElements]);
@@ -151,11 +177,11 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     const focusOnStart = () => {
       if (cy.nodes().length === 0) return;
-      
+
       const targetZoom = 1.0;
       const nodes = cy.nodes();
       let bb = nodes.boundingBox();
-      
+
       // Try to find the "start" nodes
       const roots = nodes.roots();
       if (roots.length > 0) {
@@ -163,22 +189,28 @@ export const Canvas: React.FC<CanvasProps> = ({
       } else {
         if (layoutDir === 'TB') {
           let minY = Infinity;
-          nodes.forEach(n => { const y = n.position('y'); if (y < minY) minY = y; });
-          const startNodes = nodes.filter(n => Math.abs(n.position('y') - minY) < 100);
+          nodes.forEach((n) => {
+            const y = n.position('y');
+            if (y < minY) minY = y;
+          });
+          const startNodes = nodes.filter((n) => Math.abs(n.position('y') - minY) < 100);
           if (startNodes.length > 0) bb = startNodes.boundingBox();
         } else {
           let minX = Infinity;
-          nodes.forEach(n => { const x = n.position('x'); if (x < minX) minX = x; });
-          const startNodes = nodes.filter(n => Math.abs(n.position('x') - minX) < 100);
+          nodes.forEach((n) => {
+            const x = n.position('x');
+            if (x < minX) minX = x;
+          });
+          const startNodes = nodes.filter((n) => Math.abs(n.position('x') - minX) < 100);
           if (startNodes.length > 0) bb = startNodes.boundingBox();
         }
       }
 
       const width = cy.width();
       const height = cy.height();
-      
-      let panX = (width / 2) - (bb.x1 + bb.w / 2) * targetZoom;
-      let panY = (height / 2) - (bb.y1 + bb.h / 2) * targetZoom;
+
+      let panX = width / 2 - (bb.x1 + bb.w / 2) * targetZoom;
+      let panY = height / 2 - (bb.y1 + bb.h / 2) * targetZoom;
 
       if (layoutDir === 'TB') {
         panY = 100 - bb.y1 * targetZoom; // 100px padding from top
@@ -190,12 +222,12 @@ export const Canvas: React.FC<CanvasProps> = ({
         zoom: targetZoom,
         pan: { x: panX, y: panY },
         duration: 400,
-        easing: 'ease-in-out-cubic'
+        easing: 'ease-in-out-cubic',
       });
     };
 
     cy.on('layoutstop', focusOnStart);
-    
+
     // For preset layout which might not always trigger layoutstop in react-cytoscapejs
     if (viewMode === 'project' && !isLayouting && layoutedElements.length > 0) {
       setTimeout(focusOnStart, 50);
@@ -209,23 +241,23 @@ export const Canvas: React.FC<CanvasProps> = ({
   const stylesheet = graphStylesheet(layoutDir);
 
   // Choose layout config based on view mode
-  const cytoscapeLayout: any = viewMode === 'component'
-    ? {
-        name: 'dagre',
-        rankDir: layoutDir,
-        nodeSep: 40,
-        rankSep: 80,
-        edgeSep: 15,
-        padding: 20,
-        animate: true,
-        animationDuration: 400,
-        fit: false,
-      }
-    : { name: 'preset', fit: false };
+  const cytoscapeLayout: any =
+    viewMode === 'component'
+      ? {
+          name: 'dagre',
+          rankDir: layoutDir,
+          nodeSep: 40,
+          rankSep: 80,
+          edgeSep: 15,
+          padding: 20,
+          animate: true,
+          animationDuration: 400,
+          fit: false,
+        }
+      : { name: 'preset', fit: false };
 
   return (
     <div className="relative w-full h-screen bg-slate-50">
-
       {/* Loading Overlay */}
       {isLayouting && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 font-sans backdrop-blur-sm">
@@ -250,7 +282,9 @@ export const Canvas: React.FC<CanvasProps> = ({
             <React.Fragment key={crumb.id}>
               <span className="text-slate-400">›</span>
               <button
-                onClick={() => onBreadcrumbNavigate?.(idx === breadcrumb.length - 1 ? crumb.id : crumb.id)}
+                onClick={() =>
+                  onBreadcrumbNavigate?.(idx === breadcrumb.length - 1 ? crumb.id : crumb.id)
+                }
                 className={`px-2 py-0.5 rounded-full transition-colors font-medium ${
                   idx === breadcrumb.length - 1
                     ? 'bg-indigo-100 text-indigo-700 cursor-default'
@@ -329,7 +363,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             )}
           </AnimatePresence>
           <div
-            onClick={() => setIsLegendOpen(o => !o)}
+            onClick={() => setIsLegendOpen((o) => !o)}
             className="p-3 px-4 flex justify-between items-center cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors"
           >
             <h3 className="text-sm font-semibold text-slate-900">Legend</h3>
@@ -346,23 +380,28 @@ export const Canvas: React.FC<CanvasProps> = ({
         <div className="absolute top-5 right-5 z-10 bg-white p-4 rounded-xl shadow-md border border-slate-200 font-sans max-w-[400px]">
           <h3 className="text-sm font-semibold text-slate-900 mb-3">📍 Path to Root</h3>
           <div className="text-sm font-semibold text-slate-700 flex flex-wrap gap-2 items-center">
-            {selectedPath.slice().reverse().map((nodeId, idx) => {
-              const node = elements.find(e => e.data.id === nodeId);
-              return (
-                <React.Fragment key={nodeId}>
-                  {idx > 0 && <span className="text-blue-400">→</span>}
-                  <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">
-                    {node?.data.label || nodeId}
-                  </span>
-                </React.Fragment>
-              );
-            })}
+            {selectedPath
+              .slice()
+              .reverse()
+              .map((nodeId, idx) => {
+                const node = elements.find((e) => e.data.id === nodeId);
+                return (
+                  <React.Fragment key={nodeId}>
+                    {idx > 0 && <span className="text-blue-400">→</span>}
+                    <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">
+                      {node?.data.label || nodeId}
+                    </span>
+                  </React.Fragment>
+                );
+              })}
           </div>
         </div>
       )}
 
       {/* Cytoscape Canvas */}
-      <div className={`w-full h-full transition-opacity duration-200 ${isLayouting ? 'opacity-0' : 'opacity-100'}`}>
+      <div
+        className={`w-full h-full transition-opacity duration-200 ${isLayouting ? 'opacity-0' : 'opacity-100'}`}
+      >
         {layoutedElements.length > 0 && (
           <CytoscapeComponent
             elements={layoutedElements}

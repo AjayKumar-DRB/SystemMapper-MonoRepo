@@ -16,12 +16,14 @@ export class ParserConsumer extends WorkerHost {
 
     // Support new batched format: { files: [{filePath, content}], allFilePaths }
     // Also support legacy single-file format for backwards compatibility
-    const filesToProcess: { filePath: string; content: string }[] = job.data.files
+    const filesToProcess: { filePath: string; content: string }[] = job.data
+      .files
       ? job.data.files
       : [{ filePath: job.data.filePath, content: job.data.content }];
 
     // allFilePaths is the full repository file list for cross-file import resolution
-    const allFilePaths: string[] = job.data.allFilePaths || filesToProcess.map((f: any) => f.filePath);
+    const allFilePaths: string[] =
+      job.data.allFilePaths || filesToProcess.map((f: any) => f.filePath);
 
     if (!filesToProcess.length) {
       this.logger.warn(`Job ${job.id} had no files to process.`);
@@ -36,14 +38,18 @@ export class ParserConsumer extends WorkerHost {
 
     for (const { filePath, content } of filesToProcess) {
       if (!filePath || !content) {
-        this.logger.warn(`Skipping file with missing filePath or content in job ${job.id}`);
+        this.logger.warn(
+          `Skipping file with missing filePath or content in job ${job.id}`,
+        );
         continue;
       }
 
       const language = this.registry.detectLanguage(filePath);
       const parser = this.registry.getParser(language);
       if (!parser) {
-        this.logger.debug(`No parser for ${filePath} (language: ${language}), skipping.`);
+        this.logger.debug(
+          `No parser for ${filePath} (language: ${language}), skipping.`,
+        );
         continue;
       }
 
@@ -70,10 +76,21 @@ export class ParserConsumer extends WorkerHost {
 
     try {
       // fullSync receives all parsed files + the complete repo file list for import resolution
-      await this.graphSynchronizer.fullSync(repositoryId, parsedFiles, scanId, branch, allFilePaths);
-      this.logger.log(`Successfully persisted batch of ${parsedFiles.length} files to Memgraph.`);
+      await this.graphSynchronizer.fullSync(
+        repositoryId,
+        parsedFiles,
+        scanId,
+        branch,
+        allFilePaths,
+      );
+      this.logger.log(
+        `Successfully persisted batch of ${parsedFiles.length} files to Memgraph.`,
+      );
     } catch (error: any) {
-      this.logger.error(`Failed to sync batch to Memgraph: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to sync batch to Memgraph: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
 

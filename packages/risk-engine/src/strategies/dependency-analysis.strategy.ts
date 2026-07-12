@@ -7,7 +7,7 @@ export class DependencyAnalysisStrategy implements IRiskStrategy<DependencyAnaly
 
   analyze(input: RiskAnalysisInput, context: StrategyContext): DependencyAnalysisResult {
     const { changedFiles, dependencyGraph } = input;
-    
+
     let totalFanIn = 0;
     let totalFanOut = 0;
     let maxFanIn = 0;

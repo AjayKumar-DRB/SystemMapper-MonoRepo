@@ -1,9 +1,15 @@
 import { IRiskStrategy } from '../interfaces/risk-strategy.interface';
-import { ArchitectureViolationResult, RiskAnalysisInput, StrategyContext, Violation } from '../types';
+import {
+  ArchitectureViolationResult,
+  RiskAnalysisInput,
+  StrategyContext,
+  Violation,
+} from '../types';
 
 export class ArchitectureViolationStrategy implements IRiskStrategy<ArchitectureViolationResult> {
   name = 'architecture-violation';
-  description = 'Detects architecture rule violations introduced by the changes based on configurable patterns.';
+  description =
+    'Detects architecture rule violations introduced by the changes based on configurable patterns.';
 
   analyze(input: RiskAnalysisInput, context: StrategyContext): ArchitectureViolationResult {
     const { changedFiles, dependencyGraph, options } = input;
@@ -15,12 +21,14 @@ export class ArchitectureViolationStrategy implements IRiskStrategy<Architecture
       const node = dependencyGraph.fileIndex.get(file.filePath);
       if (!node) continue;
 
-      const outboundEdges = dependencyGraph.edges.filter(e => e.source === node.id && e.type === 'IMPORTS');
-      
+      const outboundEdges = dependencyGraph.edges.filter(
+        (e) => e.source === node.id && e.type === 'IMPORTS',
+      );
+
       for (const edge of outboundEdges) {
-        const targetNode = dependencyGraph.nodes.find(n => n.id === edge.target);
+        const targetNode = dependencyGraph.nodes.find((n) => n.id === edge.target);
         if (!targetNode) continue;
-        
+
         const sourcePath = file.filePath;
         const targetPath = targetNode.properties.filePath || targetNode.id; // fallback to ID
 
@@ -33,7 +41,7 @@ export class ArchitectureViolationStrategy implements IRiskStrategy<Architecture
               violations.push({
                 rule,
                 sourceFile: sourcePath,
-                targetFile: targetPath
+                targetFile: targetPath,
               });
             }
           }
@@ -44,7 +52,7 @@ export class ArchitectureViolationStrategy implements IRiskStrategy<Architecture
     return {
       violations,
       violationCount: violations.length,
-      severity: violations.length > 0 ? 'error' : 'none'
+      severity: violations.length > 0 ? 'error' : 'none',
     };
   }
 }

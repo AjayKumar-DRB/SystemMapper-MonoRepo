@@ -33,7 +33,7 @@ async function run() {
 
   console.log('--- Parsing Dummy Code ---');
   const result = parser.parse('src/user.service.ts', dummyCode);
-  
+
   console.log(JSON.stringify(result, null, 2));
 }
 
