@@ -1,6 +1,5 @@
 import { layoutHierarchicalGraph } from './layoutUtils';
 
-
 self.onmessage = (e: MessageEvent) => {
   const { elements, layoutDir, collapsedNodesArray } = e.data;
 
@@ -10,6 +9,9 @@ self.onmessage = (e: MessageEvent) => {
 
     self.postMessage({ type: 'SUCCESS', layoutedElements });
   } catch (error: unknown) {
-    self.postMessage({ type: 'ERROR', error: error instanceof Error ? error.message : String(error) });
+    self.postMessage({
+      type: 'ERROR',
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 };

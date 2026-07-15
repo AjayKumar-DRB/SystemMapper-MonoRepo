@@ -1,8 +1,6 @@
 import dagre from 'dagre';
 import { ElementDefinition } from 'cytoscape';
 
-
-
 /**
  * Traces a node to its top-level parent (project node)
  */

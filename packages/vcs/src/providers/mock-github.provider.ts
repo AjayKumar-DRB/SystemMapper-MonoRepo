@@ -23,7 +23,12 @@ export class MockGithubProvider implements IVcsProvider {
     return true; // Always valid in mock mode
   }
 
-  async fetchFileTree(owner: string, repo: string, sha: string, _token: string): Promise<unknown[]> {
+  async fetchFileTree(
+    owner: string,
+    repo: string,
+    sha: string,
+    _token: string,
+  ): Promise<unknown[]> {
     this.logger.debug(`[MOCK] Fetching file tree for ${owner}/${repo}@${sha}`);
     return [];
   }

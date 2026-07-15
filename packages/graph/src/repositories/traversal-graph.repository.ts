@@ -14,7 +14,6 @@ export class TraversalGraphRepository extends BaseGraphRepository {
     filePath: string,
     maxDepth: number = 3,
   ): Promise<BlastRadiusResult> {
-
     // In a real memgraph environment we'd use Memgraph's specific BFS/DFS path finding,
     // or standard neo4j path syntax `MATCH path = (source)-[:IMPORTS*1..maxDepth]->(target)`.
 
@@ -26,7 +25,10 @@ export class TraversalGraphRepository extends BaseGraphRepository {
       RETURN collect(distinct node) AS nodes, collect(distinct rel) AS edges
     `;
 
-    const results = await this.runQuery<Record<string, unknown>>(standardNeo4jQuery, { repositoryId, filePath });
+    const results = await this.runQuery<Record<string, unknown>>(standardNeo4jQuery, {
+      repositoryId,
+      filePath,
+    });
 
     if (results.length === 0) {
       return { nodes: [], edges: [] };
@@ -89,7 +91,10 @@ export class TraversalGraphRepository extends BaseGraphRepository {
       RETURN collect(distinct n) AS nodes, collect(distinct r) AS edges
     `;
 
-    const results = await this.runQuery<Record<string, unknown>>(query, { folderId, ...branchParam });
+    const results = await this.runQuery<Record<string, unknown>>(query, {
+      folderId,
+      ...branchParam,
+    });
     if (results.length === 0) return { nodes: [], edges: [] };
 
     return {
