@@ -5,7 +5,7 @@ export class DependencyAnalysisStrategy implements IRiskStrategy<DependencyAnaly
   name = 'dependency-analysis';
   description = 'Calculates fan-in and fan-out coupling metrics for changed files.';
 
-  analyze(input: RiskAnalysisInput, context: StrategyContext): DependencyAnalysisResult {
+  analyze(input: RiskAnalysisInput, _context: StrategyContext): DependencyAnalysisResult {
     const { changedFiles, dependencyGraph } = input;
 
     let totalFanIn = 0;

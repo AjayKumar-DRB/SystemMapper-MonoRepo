@@ -12,7 +12,7 @@ export interface IVcsProvider {
   /**
    * Fetches the entire file tree for a given commit SHA.
    */
-  fetchFileTree(owner: string, repo: string, sha: string, token: string): Promise<any[]>;
+  fetchFileTree(owner: string, repo: string, sha: string, token?: string): Promise<unknown[]>;
 
   /**
    * Fetches the raw content of a specific file.

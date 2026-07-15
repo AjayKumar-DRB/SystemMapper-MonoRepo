@@ -6,7 +6,7 @@ export class CircularDependencyStrategy implements IRiskStrategy<CircularDepende
   description =
     'Detects circular dependencies involving the changed files using Tarjan SCC algorithm.';
 
-  analyze(input: RiskAnalysisInput, context: StrategyContext): CircularDependencyResult {
+  analyze(input: RiskAnalysisInput, _context: StrategyContext): CircularDependencyResult {
     const { dependencyGraph, changedFiles } = input;
 
     // We will find all cycles in the graph and see if any changed file is part of them.

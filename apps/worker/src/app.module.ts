@@ -11,8 +11,8 @@ import { QueueNames } from '@systemmapper/types';
   imports: [
     BullModule.forRoot({
       connection: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379', 10),
+        host: process.env.REDIS_HOST ?? 'localhost',
+        port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
       },
     }),
     BullModule.registerQueue({
@@ -22,4 +22,5 @@ import { QueueNames } from '@systemmapper/types';
   controllers: [AppController],
   providers: [AppService, ParserConsumer, BlastRadiusConsumer, ExploreConsumer],
 })
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class AppModule {}

@@ -1,4 +1,4 @@
-import { Session, ManagedTransaction } from 'neo4j-driver';
+import { ManagedTransaction } from 'neo4j-driver';
 import { MemgraphDriver } from '../driver/memgraph-driver';
 import { CypherBuilder } from '../cypher/cypher.builder';
 
@@ -16,13 +16,13 @@ export abstract class BaseGraphRepository {
     const session = await MemgraphDriver.getSession();
     try {
       const result = await session.executeRead((tx: ManagedTransaction) => tx.run(query, params));
-      return result.records.map((record: any) => record.toObject() as T);
+      return result.records.map((record: { toObject: () => unknown }) => record.toObject() as T);
     } finally {
       await session.close();
     }
   }
 
-  protected async mergeNode(label: string, properties: Record<string, any>): Promise<void> {
+  protected async mergeNode(label: string, properties: Record<string, unknown>): Promise<void> {
     const builder = new CypherBuilder()
       .merge(label, 'n', `nodeId: $props.nodeId`)
       .set('n += $props');
@@ -35,7 +35,7 @@ export abstract class BaseGraphRepository {
     sourceId: string,
     targetId: string,
     type: string,
-    props: Record<string, any> = {},
+    props: Record<string, unknown> = {},
   ): Promise<void> {
     const builder = new CypherBuilder()
       .match('Node', 's', 'nodeId: $sourceId')

@@ -42,7 +42,12 @@ export class GithubProvider implements IVcsProvider {
     return verify(secret, payload, signature);
   }
 
-  async fetchFileTree(owner: string, repo: string, sha: string, token?: string): Promise<any[]> {
+  async fetchFileTree(
+    owner: string,
+    repo: string,
+    sha: string,
+    token?: string,
+  ): Promise<unknown[]> {
     const { Octokit } = await import('@octokit/rest');
     const octokit = token ? new Octokit({ auth: token }) : new Octokit();
     const response = await octokit.rest.git.getTree({

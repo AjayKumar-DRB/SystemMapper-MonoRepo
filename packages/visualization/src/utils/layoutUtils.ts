@@ -2,63 +2,6 @@ import dagre from 'dagre';
 import { ElementDefinition } from 'cytoscape';
 
 /**
- * Builds a parent-child hierarchy map from the flat elements
- */
-const buildHierarchy = (elements: ElementDefinition[]): Map<string, string[]> => {
-  const hierarchy = new Map<string, string[]>();
-
-  elements.forEach((edge) => {
-    if (edge.data.source && edge.data.target && edge.data.type === 'CONTAINS') {
-      const parent = edge.data.source;
-      const child = edge.data.target;
-      const children = hierarchy.get(parent) || [];
-      children.push(child);
-      hierarchy.set(parent, children);
-    }
-  });
-
-  return hierarchy;
-};
-
-/**
- * Calculate the depth level of each node in the hierarchy
- */
-const calculateNodeLevels = (
-  elements: ElementDefinition[],
-  hierarchy: Map<string, string[]>,
-): Map<string, number> => {
-  const levels = new Map<string, number>();
-
-  // Find all children
-  const allChildren = new Set<string>();
-  for (const children of hierarchy.values()) {
-    children.forEach((c) => allChildren.add(c));
-  }
-
-  // Roots are nodes that are not children
-  const roots = elements
-    .filter((el) => !el.data.source && !el.data.target)
-    .filter((el) => !allChildren.has(el.data.id!));
-
-  const calculateLevel = (nodeId: string, currentLevel: number) => {
-    if (levels.has(nodeId) && levels.get(nodeId)! >= currentLevel) {
-      return; // Already processed at this or deeper level
-    }
-
-    levels.set(nodeId, currentLevel);
-
-    const children = hierarchy.get(nodeId) || [];
-    children.forEach((childId) => {
-      calculateLevel(childId, currentLevel + 1);
-    });
-  };
-
-  roots.forEach((root) => calculateLevel(root.data.id!, 0));
-
-  return levels;
-};
-
-/**
  * Traces a node to its top-level parent (project node)
  */
 export const traceToRoot = (nodeId: string, elements: ElementDefinition[]): string[] => {
@@ -89,9 +32,6 @@ export const layoutHierarchicalGraph = (
 ): ElementDefinition[] => {
   const nodes = elements.filter((el) => !el.data.source && !el.data.target);
   const edges = elements.filter((el) => el.data.source && el.data.target);
-
-  const hierarchy = buildHierarchy(edges);
-  const nodeLevels = calculateNodeLevels(nodes, hierarchy);
 
   // Determine which nodes should be visible
   const visibleNodeIds = new Set<string>();
@@ -129,7 +69,6 @@ export const layoutHierarchicalGraph = (
   visibleNodes.forEach((node) => {
     const isFolder =
       node.data.type === 'folder' || node.data.type === 'directory' || node.data.type === 'project';
-    const level = nodeLevels.get(node.data.id!) || 0;
 
     dagreGraph.setNode(node.data.id!, {
       label: node.data.label,

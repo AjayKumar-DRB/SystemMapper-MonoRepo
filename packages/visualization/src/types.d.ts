@@ -1,14 +1,16 @@
+import cytoscape from 'cytoscape';
+
 declare module 'cytoscape-expand-collapse' {
-  const expandCollapse: any;
+  const expandCollapse: cytoscape.Ext;
   export default expandCollapse;
 }
 
 declare module 'cytoscape-dagre' {
-  const dagre: any;
+  const dagre: cytoscape.Ext;
   export default dagre;
 }
 
 declare module 'cytoscape-elk' {
-  const elk: any;
+  const elk: cytoscape.Ext;
   export default elk;
 }

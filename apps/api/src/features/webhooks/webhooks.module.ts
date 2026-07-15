@@ -16,4 +16,5 @@ import { QueueNames } from '@systemmapper/types';
   controllers: [WebhooksController],
   providers: [WebhooksService],
 })
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class WebhooksModule {}

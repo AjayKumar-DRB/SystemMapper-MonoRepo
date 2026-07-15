@@ -15,15 +15,20 @@ export class MockGithubProvider implements IVcsProvider {
   }
 
   async verifyWebhookSignature(
-    payload: string,
-    signature: string,
-    secret: string,
+    _payload: string,
+    _signature: string,
+    _secret: string,
   ): Promise<boolean> {
     this.logger.debug(`[MOCK] Verifying webhook signature`);
     return true; // Always valid in mock mode
   }
 
-  async fetchFileTree(owner: string, repo: string, sha: string, token: string): Promise<any[]> {
+  async fetchFileTree(
+    owner: string,
+    repo: string,
+    sha: string,
+    _token: string,
+  ): Promise<unknown[]> {
     this.logger.debug(`[MOCK] Fetching file tree for ${owner}/${repo}@${sha}`);
     return [];
   }
@@ -33,7 +38,7 @@ export class MockGithubProvider implements IVcsProvider {
     repo: string,
     path: string,
     sha: string,
-    token: string,
+    _token: string,
   ): Promise<string> {
     this.logger.debug(`[MOCK] Fetching file content for ${owner}/${repo}/${path}@${sha}`);
     return `// Mock content for ${path}`;
@@ -44,7 +49,7 @@ export class MockGithubProvider implements IVcsProvider {
     repo: string,
     prNumber: number,
     body: string,
-    token: string,
+    _token: string,
   ): Promise<string> {
     this.logger.debug(`[MOCK] Posting PR comment to ${owner}/${repo}#${prNumber}`);
     const id = (this.commentIdCounter++).toString();
@@ -62,7 +67,7 @@ export class MockGithubProvider implements IVcsProvider {
     repo: string,
     commentId: string,
     body: string,
-    token: string,
+    _token: string,
   ): Promise<void> {
     this.logger.debug(`[MOCK] Updating PR comment ${commentId} in ${owner}/${repo}`);
     const comment = this.mockComments.find((c) => c.id === commentId);
@@ -75,7 +80,7 @@ export class MockGithubProvider implements IVcsProvider {
     owner: string,
     repo: string,
     prNumber: number,
-    token: string,
+    _token: string,
   ): Promise<Array<{ id: string; body: string; user: string }>> {
     this.logger.debug(`[MOCK] Fetching comments for PR ${owner}/${repo}#${prNumber}`);
     return this.mockComments.filter((c) => c.prNumber === prNumber);
@@ -85,7 +90,7 @@ export class MockGithubProvider implements IVcsProvider {
     owner: string,
     repo: string,
     prNumber: number,
-    token: string,
+    _token: string,
   ): Promise<
     Array<{
       filename: string;

@@ -1,8 +1,48 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { Queue, Job } from 'bullmq';
 import { QueueNames } from '@systemmapper/types';
 import { TraversalGraphRepository } from '@systemmapper/graph';
+
+// Represents a raw Neo4j/Memgraph node as returned by the driver
+interface RawGraphNode {
+  identity: { toString: () => string };
+  labels: string[];
+  properties: {
+    nodeId?: string;
+    name?: string;
+    filePath?: string;
+    fileName?: string;
+    language?: string;
+    branch?: string;
+  };
+}
+
+// Represents a raw Neo4j/Memgraph relationship
+interface RawGraphEdge {
+  identity?: { toString: () => string };
+  start?: { toString: () => string };
+  end?: { toString: () => string };
+  type: string;
+  properties: Record<string, unknown>;
+}
+
+// The shape returned by traversal repo queries
+interface RawGraph {
+  nodes: RawGraphNode[];
+  edges: RawGraphEdge[];
+}
+
+// A Cytoscape element (node or edge)
+interface CytoscapeElement {
+  data: Record<string, string | undefined>;
+}
+
+// The job data shape stored in the scan queue
+interface ScanJobData {
+  repositoryId: string;
+  [key: string]: unknown;
+}
 
 @Injectable()
 export class VisualizationService {
@@ -18,33 +58,39 @@ export class VisualizationService {
     branch?: string,
     view: 'project' | 'component' = 'project',
     folderId?: string,
-  ) {
+  ): Promise<CytoscapeElement[]> {
     this.logger.debug(
-      `Fetching visualization graph for repo: ${repositoryId}, branch: ${branch || 'all'}, view: ${view}, folderId: ${folderId || 'none'}`,
+      `Fetching visualization graph for repo: ${repositoryId}, branch: ${branch ?? 'all'}, view: ${view}, folderId: ${folderId ?? 'none'}`,
     );
 
     // 1. Fetch raw graph from Memgraph
-    // If folderId is specified (drill-down mode), use subtree query
-    const rawGraph = folderId
-      ? await this.traversalRepo.getSubtreeGraph(repositoryId, folderId, branch)
-      : await this.traversalRepo.getFullGraph(repositoryId, branch);
+    const rawGraph = (
+      folderId
+        ? await this.traversalRepo.getSubtreeGraph(
+            repositoryId,
+            folderId,
+            branch,
+          )
+        : await this.traversalRepo.getFullGraph(repositoryId, branch)
+    ) as RawGraph;
 
     // 2. Pre-process IDs
     const idMap = new Map<string, string>();
-    rawGraph.nodes.forEach((node: any) => {
-      idMap.set(node.identity.toString(), node.properties.nodeId);
+    rawGraph.nodes.forEach((node: RawGraphNode) => {
+      const nodeId = node.properties.nodeId ?? node.identity.toString();
+      idMap.set(node.identity.toString(), nodeId);
     });
 
     // 3. Map GenericGraphModel to Cytoscape Elements
-    const elements: any[] = [];
+    const elements: CytoscapeElement[] = [];
 
     // Process Nodes
     const fileToFolderMap = new Map<string, string>();
 
-    rawGraph.nodes.forEach((node: any) => {
-      const labels = node.labels || [];
-      const props = node.properties || {};
-      const nodeId = props.nodeId || node.identity?.toString();
+    rawGraph.nodes.forEach((node: RawGraphNode) => {
+      const labels = node.labels;
+      const props = node.properties;
+      const nodeId = props.nodeId ?? node.identity.toString();
 
       // Always include Folders in both views
       if (labels.includes('Folder') || labels.includes('Directory')) {
@@ -57,12 +103,12 @@ export class VisualizationService {
           },
         });
       } else if (labels.includes('File')) {
-        const filePath = props.filePath || '';
+        const filePath = props.filePath ?? '';
         const dirPath = filePath.substring(0, filePath.lastIndexOf('/'));
         let parentFolderId: string | undefined = undefined;
 
-        if (dirPath && dirPath !== '') {
-          parentFolderId = `${repositoryId}:${branch || 'default'}:Folder:${dirPath}`;
+        if (dirPath !== '') {
+          parentFolderId = `${repositoryId}:${branch ?? 'default'}:Folder:${dirPath}`;
           fileToFolderMap.set(nodeId, parentFolderId);
         }
 
@@ -70,12 +116,12 @@ export class VisualizationService {
           elements.push({
             data: {
               id: nodeId,
-              label: props.fileName || filePath || nodeId,
+              label: props.fileName ?? (filePath !== '' ? filePath : nodeId),
               type: 'file',
               language: props.language,
               branch: props.branch,
               filePath: filePath,
-              parent: parentFolderId, // Links to compound node!
+              parent: parentFolderId,
             },
           });
         }
@@ -83,7 +129,7 @@ export class VisualizationService {
         elements.push({
           data: {
             id: nodeId,
-            label: props.name || nodeId,
+            label: props.name ?? nodeId,
             type: 'external',
           },
         });
@@ -93,17 +139,16 @@ export class VisualizationService {
     // Process Edges
     const projectFolderEdges = new Set<string>();
 
-    rawGraph.edges.forEach((edge: any) => {
-      const props = edge.properties || {};
+    rawGraph.edges.forEach((edge: RawGraphEdge) => {
       const edgeId =
-        edge.identity?.toString() ||
-        `${edge.start?.toString()}-${edge.type}-${edge.end?.toString()}`;
+        edge.identity?.toString() ??
+        `${edge.start?.toString() ?? ''}-${edge.type}-${edge.end?.toString() ?? ''}`;
       const sourceId =
-        idMap.get(edge.start?.toString()) || edge.start?.toString();
-      const targetId = idMap.get(edge.end?.toString()) || edge.end?.toString();
+        idMap.get(edge.start?.toString() ?? '') ?? edge.start?.toString();
+      const targetId =
+        idMap.get(edge.end?.toString() ?? '') ?? edge.end?.toString();
 
       if (view === 'component') {
-        // Only show direct IMPORTS between files
         if (edge.type === 'IMPORTS') {
           elements.push({
             data: {
@@ -114,8 +159,8 @@ export class VisualizationService {
             },
           });
         }
-      } else if (view === 'project') {
-        // Show hierarchy
+      } else {
+        // project view
         if (edge.type === 'CONTAINS') {
           elements.push({
             data: {
@@ -127,10 +172,13 @@ export class VisualizationService {
           });
         }
 
-        // Roll up IMPORTS between files to their respective folders
         if (edge.type === 'IMPORTS') {
-          const sourceFolderId = fileToFolderMap.get(sourceId);
-          const targetFolderId = fileToFolderMap.get(targetId);
+          const sourceFolderId = sourceId
+            ? fileToFolderMap.get(sourceId)
+            : undefined;
+          const targetFolderId = targetId
+            ? fileToFolderMap.get(targetId)
+            : undefined;
 
           if (
             sourceFolderId &&
@@ -167,8 +215,7 @@ export class VisualizationService {
       `Dispatching explore job for URL: ${repoUrl}${branch ? ` (branch: ${branch})` : ''}`,
     );
 
-    // Generate a temporary unique ID for this exploration
-    const repositoryId = `explore_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    const repositoryId = `explore_${Date.now().toString()}_${Math.random().toString(36).substring(7)}`;
 
     const job = await this.scanQueue.add('repository-explore', {
       repositoryId,
@@ -177,11 +224,16 @@ export class VisualizationService {
       triggerType: 'explore',
     });
 
-    return job.id!;
+    return job.id ?? repositoryId;
   }
 
-  async getExploreJobStatus(jobId: string) {
-    const job = await this.scanQueue.getJob(jobId);
+  async getExploreJobStatus(jobId: string): Promise<{
+    status: string;
+    progress?: unknown;
+    repositoryId?: string | null;
+  }> {
+    const job: Job<ScanJobData> | undefined =
+      await this.scanQueue.getJob(jobId);
 
     if (!job) {
       return { status: 'not_found' };
@@ -190,8 +242,7 @@ export class VisualizationService {
     const state = await job.getState();
     const progress = job.progress;
 
-    // If completed, return the repositoryId so frontend can load it
-    let repositoryId = null;
+    let repositoryId: string | null = null;
     if (state === 'completed') {
       repositoryId = job.data.repositoryId;
     }

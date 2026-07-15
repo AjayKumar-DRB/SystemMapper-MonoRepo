@@ -1,4 +1,4 @@
-import { RiskReport } from '@systemmapper/risk-engine';
+import { RiskReport, Violation } from '@systemmapper/risk-engine';
 
 export class MarkdownGenerator {
   static generateBlastRadiusComment(report: RiskReport): string {
@@ -43,7 +43,7 @@ export class MarkdownGenerator {
 
     if (architectureViolations.violationCount > 0) {
       markdown += `### 🏗️ Architecture Violations\n`;
-      architectureViolations.violations.forEach((v: any) => {
+      architectureViolations.violations.forEach((v: Violation) => {
         markdown += `- \`${v.sourceFile}\` ❌ imports \`${v.targetFile}\` (Rule: ${v.rule.type})\n`;
       });
       markdown += `\n`;

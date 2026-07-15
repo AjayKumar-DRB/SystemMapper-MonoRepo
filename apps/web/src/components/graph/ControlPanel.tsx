@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import cytoscape from 'cytoscape';
+import type cytoscape from 'cytoscape';
 import {
   MagnifyingGlassPlus,
   MagnifyingGlassMinus,
@@ -20,6 +20,38 @@ export interface ControlPanelProps {
   viewMode: 'project' | 'component';
   onViewModeChange: (view: 'project' | 'component') => void;
 }
+
+interface TooltipButtonProps {
+  onClick: () => void;
+  icon: React.ElementType;
+  tooltip: string;
+  isActive?: boolean;
+  weight?: 'fill' | 'bold' | 'duotone' | 'regular' | 'light' | 'thin';
+}
+
+const TooltipButton = ({
+  onClick,
+  icon: Icon,
+  tooltip,
+  isActive = false,
+  weight,
+}: TooltipButtonProps) => (
+  <Tooltip>
+    <TooltipTrigger
+      className={`flex items-center justify-center p-2 rounded-md transition-colors ${isActive ? 'bg-blue-50 text-blue-600' : 'bg-white text-slate-700 hover:bg-slate-50'}`}
+      onClick={onClick}
+    >
+      <Icon
+        weight={weight || (isActive ? 'fill' : 'bold')}
+        size={16}
+        color={isActive ? '#3b82f6' : undefined}
+      />
+    </TooltipTrigger>
+    <TooltipContent side="top" sideOffset={8}>
+      {tooltip}
+    </TooltipContent>
+  </Tooltip>
+);
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
   cy,
@@ -76,39 +108,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const handleToggleDir = () => {
     onLayoutDirChange(layoutDir === 'TB' ? 'LR' : 'TB');
   };
-
-  interface TooltipButtonProps {
-    onClick: () => void;
-    icon: React.ElementType;
-    tooltip: string;
-    isActive?: boolean;
-    weight?: 'fill' | 'bold' | 'duotone' | 'regular' | 'light' | 'thin';
-  }
-
-  const TooltipButton = ({
-    onClick,
-    icon: Icon,
-    tooltip,
-    isActive = false,
-    weight,
-  }: TooltipButtonProps) => (
-    <Tooltip>
-      <TooltipTrigger
-        className={`flex items-center justify-center p-2 rounded-md transition-colors ${isActive ? 'bg-blue-50 text-blue-600' : 'bg-white text-slate-700 hover:bg-slate-50'}`}
-        onClick={onClick}
-      >
-        <Icon
-          weight={weight || (isActive ? 'fill' : 'bold')}
-          size={16}
-          color={isActive ? '#3b82f6' : undefined}
-        />
-      </TooltipTrigger>
-      <TooltipContent side="top" sideOffset={8}>
-        {tooltip}
-      </TooltipContent>
-    </Tooltip>
-  );
-
   return (
     <div className="flex gap-2 w-full font-sans">
       {/* Zoom Controls */}

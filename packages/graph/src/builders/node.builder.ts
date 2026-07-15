@@ -3,7 +3,6 @@ import {
   ClassDeclaration,
   FunctionDeclaration,
   MethodDeclaration,
-  ImportDeclaration,
 } from '@systemmapper/types';
 
 export class NodeBuilder {

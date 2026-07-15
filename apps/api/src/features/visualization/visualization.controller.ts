@@ -10,6 +10,11 @@ import {
 } from '@nestjs/common';
 import { VisualizationService } from './visualization.service';
 
+interface ExploreBody {
+  url: string;
+  branch?: string;
+}
+
 @Controller('visualization')
 export class VisualizationController {
   constructor(private readonly visualizationService: VisualizationService) {}
@@ -20,32 +25,36 @@ export class VisualizationController {
     @Query('branch') branch?: string,
     @Query('view') view?: 'project' | 'component',
     @Query('folderId') folderId?: string,
-  ) {
+  ): Promise<unknown> {
     try {
       return await this.visualizationService.getRepositoryGraph(
         id,
         branch,
-        view || 'project',
+        view ?? 'project',
         folderId,
       );
-    } catch (error: any) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Internal server error';
+      throw new HttpException(message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
   @Get('repository/:id/branches')
-  async getBranches(@Param('id') id: string) {
+  async getBranches(@Param('id') id: string): Promise<string[]> {
     try {
       return await this.visualizationService.getBranches(id);
-    } catch (error: any) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Internal server error';
+      throw new HttpException(message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
   @Post('explore')
   async explorePublicRepository(
-    @Body() body: { url: string; branch?: string },
-  ) {
+    @Body() body: ExploreBody,
+  ): Promise<{ jobId: string }> {
     if (!body.url) {
       throw new HttpException(
         'Repository URL is required',
@@ -58,18 +67,21 @@ export class VisualizationController {
         body.branch,
       );
       return { jobId };
-    } catch (error: any) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Internal server error';
+      throw new HttpException(message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
   @Get('explore/:jobId/status')
-  async getExploreJobStatus(@Param('jobId') jobId: string) {
+  async getExploreJobStatus(@Param('jobId') jobId: string): Promise<unknown> {
     try {
-      const status = await this.visualizationService.getExploreJobStatus(jobId);
-      return status;
-    } catch (error: any) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      return await this.visualizationService.getExploreJobStatus(jobId);
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Internal server error';
+      throw new HttpException(message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

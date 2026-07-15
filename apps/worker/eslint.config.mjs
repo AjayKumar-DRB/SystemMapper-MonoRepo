@@ -30,7 +30,6 @@ export default tseslint.config(
     rules: {
       // TypeScript strict rules — all errors, no warnings
       '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-unsafe-any': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-unsafe-argument': 'error',
       '@typescript-eslint/no-unsafe-assignment': 'error',

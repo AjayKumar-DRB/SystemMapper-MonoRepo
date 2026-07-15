@@ -4,6 +4,22 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_BASE_URL } from '@/lib/api';
 
+interface ExploreResponse {
+  jobId: string;
+}
+
+interface StatusResponse {
+  status: string;
+  repositoryId?: string;
+  progress?:
+    | {
+        stage: string;
+        percent: number;
+      }
+    | number
+    | string;
+}
+
 export default function ExplorePage() {
   const [url, setUrl] = useState('');
   const [branch, setBranch] = useState('');
@@ -11,7 +27,7 @@ export default function ExplorePage() {
   const [status, setStatus] = useState('');
   const router = useRouter();
 
-  const handleExplore = async (e: React.FormEvent) => {
+  const handleExplore = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!url) return;
 
@@ -25,38 +41,53 @@ export default function ExplorePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, ...(branch ? { branch } : {}) }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as ExploreResponse;
       const jobId = data.jobId;
 
       // 2. Poll for status
-      const pollInterval = setInterval(async () => {
-        const statusRes = await fetch(`${API_BASE_URL}/api/visualization/explore/${jobId}/status`);
-        const statusData = await statusRes.json();
+      const pollInterval = setInterval(() => {
+        void (async () => {
+          try {
+            const statusRes = await fetch(
+              `${API_BASE_URL}/api/visualization/explore/${jobId}/status`,
+            );
+            const statusData = (await statusRes.json()) as StatusResponse;
 
-        if (statusData.status === 'completed' && statusData.repositoryId) {
-          clearInterval(pollInterval);
-          setStatus('Graph ready! Redirecting...');
-          router.push(`/canvas/${statusData.repositoryId}`);
-        } else if (statusData.status === 'failed') {
-          clearInterval(pollInterval);
-          setStatus('Exploration failed. Please check the URL.');
-          setIsLoading(false);
-        } else {
-          const rawProgress = statusData.progress;
-          let progressText = '0.00%';
-          let stageText = 'Processing...';
+            if (statusData.status === 'completed' && statusData.repositoryId) {
+              clearInterval(pollInterval);
+              setStatus('Graph ready! Redirecting...');
+              router.push(`/canvas/${statusData.repositoryId}`);
+            } else if (statusData.status === 'failed') {
+              clearInterval(pollInterval);
+              setStatus('Exploration failed. Please check the URL.');
+              setIsLoading(false);
+            } else {
+              const rawProgress = statusData.progress;
+              let progressText = '0.00%';
+              let stageText = 'Processing...';
 
-          if (typeof rawProgress === 'object' && rawProgress !== null) {
-            stageText = rawProgress.stage
-              .replace(/_/g, ' ')
-              .replace(/\b\w/g, (l: string) => l.toUpperCase());
-            progressText = `${Number(rawProgress.percent || 0).toFixed(2)}%`;
-          } else if (rawProgress !== undefined) {
-            progressText = `${Number(rawProgress || 0).toFixed(2)}%`;
+              if (
+                typeof rawProgress === 'object' &&
+                rawProgress !== null &&
+                'stage' in rawProgress
+              ) {
+                stageText = rawProgress.stage
+                  .replace(/_/g, ' ')
+                  .replace(/\b\w/g, (l: string) => l.toUpperCase());
+                progressText = `${Number(rawProgress.percent || 0).toFixed(2)}%`;
+              } else if (rawProgress !== undefined) {
+                progressText = `${Number(rawProgress || 0).toFixed(2)}%`;
+              }
+
+              setStatus(`Status: ${statusData.status} | ${stageText} (${progressText})`);
+            }
+          } catch (err) {
+            console.error(err);
+            clearInterval(pollInterval);
+            setStatus('An error occurred during polling.');
+            setIsLoading(false);
           }
-
-          setStatus(`Status: ${statusData.status} | ${stageText} (${progressText})`);
-        }
+        })();
       }, 10000);
     } catch (err) {
       console.error(err);
@@ -95,7 +126,7 @@ export default function ExplorePage() {
         </p>
 
         <form
-          onSubmit={handleExplore}
+          onSubmit={(e) => void handleExplore(e)}
           style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
         >
           <input

@@ -1,8 +1,8 @@
-import { RiskAnalysisInput, RiskReport, StrategyContext } from './types';
+import { RiskAnalysisInput, RiskReport, StrategyContext, RiskScoringResult } from './types';
 import { IRiskStrategy } from './interfaces/risk-strategy.interface';
 
 export class RiskEngine {
-  constructor(private readonly strategies: IRiskStrategy<any>[]) {}
+  constructor(private readonly strategies: IRiskStrategy<unknown>[]) {}
 
   analyze(input: RiskAnalysisInput): RiskReport {
     const context = new StrategyContext();
@@ -16,8 +16,8 @@ export class RiskEngine {
     return {
       repositoryId: input.repositoryId,
       analyzedAt: new Date().toISOString(),
-      riskScore: context.getResult<any>('risk-scoring')?.overallScore || 0,
-      riskLevel: context.getResult<any>('risk-scoring')?.riskLevel || 'LOW',
+      riskScore: context.getResult<RiskScoringResult>('risk-scoring')?.overallScore || 0,
+      riskLevel: context.getResult<RiskScoringResult>('risk-scoring')?.riskLevel || 'LOW',
       blastRadius: context.getResult('blast-radius')!,
       dependencyAnalysis: context.getResult('dependency-analysis')!,
       circularDependencies: context.getResult('circular-dependency')!,

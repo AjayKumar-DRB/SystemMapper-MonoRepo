@@ -11,7 +11,7 @@ export class ArchitectureViolationStrategy implements IRiskStrategy<Architecture
   description =
     'Detects architecture rule violations introduced by the changes based on configurable patterns.';
 
-  analyze(input: RiskAnalysisInput, context: StrategyContext): ArchitectureViolationResult {
+  analyze(input: RiskAnalysisInput, _context: StrategyContext): ArchitectureViolationResult {
     const { changedFiles, dependencyGraph, options } = input;
     const rules = options.architectureRules || [];
     const violations: Violation[] = [];
@@ -30,7 +30,7 @@ export class ArchitectureViolationStrategy implements IRiskStrategy<Architecture
         if (!targetNode) continue;
 
         const sourcePath = file.filePath;
-        const targetPath = targetNode.properties.filePath || targetNode.id; // fallback to ID
+        const targetPath = (targetNode.properties.filePath as string) || targetNode.id; // fallback to ID
 
         for (const rule of rules) {
           if (rule.type === 'ForbiddenImport' || rule.type === 'LayerViolation') {

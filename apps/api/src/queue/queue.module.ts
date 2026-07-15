@@ -6,8 +6,8 @@ import { BullModule } from '@nestjs/bullmq';
     BullModule.forRootAsync({
       useFactory: () => ({
         connection: {
-          host: process.env.REDIS_HOST || 'localhost',
-          port: parseInt(process.env.REDIS_PORT || '6379', 10),
+          host: process.env.REDIS_HOST ?? 'localhost',
+          port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
           password: process.env.REDIS_PASSWORD,
         },
       }),
@@ -15,4 +15,5 @@ import { BullModule } from '@nestjs/bullmq';
   ],
   exports: [BullModule],
 })
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class QueueModule {}

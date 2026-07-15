@@ -11,32 +11,57 @@ import {
   CriticalPathStrategy,
   RiskScoringStrategy,
 } from '@systemmapper/risk-engine';
+import type {
+  ChangedFile,
+  DependencyGraphData,
+} from '@systemmapper/risk-engine';
 import { MockGithubProvider, MarkdownGenerator } from '@systemmapper/vcs';
 import { Logger } from '@nestjs/common';
+
+interface PrFile {
+  filename: string;
+  status: string;
+  additions: number;
+  deletions: number;
+  previous_filename?: string;
+}
+
+interface PrComment {
+  id: string;
+  body: string;
+  user: string;
+}
+
+interface BlastRadiusJobData {
+  repositoryId: string;
+  installationId: string;
+  prNumber: number;
+  headSha: string;
+}
 
 @Processor(QueueNames.BLAST_RADIUS)
 export class BlastRadiusConsumer extends WorkerHost {
   private readonly logger = new Logger(BlastRadiusConsumer.name);
   private readonly traversalRepo = new TraversalGraphRepository();
-  // Using mock provider as requested for MVP
   private readonly githubProvider = new MockGithubProvider();
 
-  async process(job: Job<any, any, string>): Promise<void> {
-    const { repositoryId, installationId, prNumber, headSha } = job.data;
+  async process(job: Job<BlastRadiusJobData>): Promise<void> {
+    const { repositoryId, installationId, prNumber } = job.data;
     this.logger.log(
-      `Processing Blast Radius job for Repo: ${repositoryId}, PR: #${prNumber}`,
+      `Processing Blast Radius job for Repo: ${repositoryId}, PR: #${prNumber.toString()}`,
     );
 
     try {
       // 1. Get Installation Token
       const token =
         await this.githubProvider.generateInstallationToken(installationId);
-      // Dummy owner/repo since we don't have them in the payload yet
       const owner = 'owner';
       const repo = 'repo';
 
       // 2. Fetch modified files in the PR
-      this.logger.debug(`Fetching changed files for PR #${prNumber}`);
+      this.logger.debug(
+        `Fetching changed files for PR #${prNumber.toString()}`,
+      );
       const prFiles = await this.githubProvider.getPullRequestFiles(
         owner,
         repo,
@@ -44,9 +69,9 @@ export class BlastRadiusConsumer extends WorkerHost {
         token,
       );
 
-      const changedFiles = prFiles.map((f: any) => ({
+      const changedFiles: ChangedFile[] = (prFiles as PrFile[]).map((f) => ({
         filePath: f.filename,
-        status: f.status as any,
+        status: f.status as ChangedFile['status'],
         additions: f.additions,
         deletions: f.deletions,
         previousPath: f.previous_filename,
@@ -72,17 +97,17 @@ export class BlastRadiusConsumer extends WorkerHost {
       const report = engine.analyze({
         repositoryId,
         changedFiles,
-        dependencyGraph: rawGraph,
+        dependencyGraph: rawGraph as DependencyGraphData,
         options: {
           maxTraversalDepth: 5,
           decayFactor: 0.7,
           criticalFilePatterns: [],
-          architectureRules: [], // Can be populated from config later
+          architectureRules: [],
         },
       });
 
       this.logger.log(
-        `Analysis complete! Score: ${report.riskScore} (${report.riskLevel})`,
+        `Analysis complete! Score: ${report.riskScore.toString()} (${report.riskLevel})`,
       );
 
       // 5. Generate Markdown
@@ -90,7 +115,7 @@ export class BlastRadiusConsumer extends WorkerHost {
 
       // 6. Check for existing comment and Post/Update
       this.logger.debug(
-        `Checking for existing SystemMapper comments on PR #${prNumber}`,
+        `Checking for existing SystemMapper comments on PR #${prNumber.toString()}`,
       );
       const existingComments = await this.githubProvider.getPullRequestComments(
         owner,
@@ -99,9 +124,8 @@ export class BlastRadiusConsumer extends WorkerHost {
         token,
       );
 
-      // Look for a comment made by our bot
-      const botComment = existingComments.find(
-        (c: any) =>
+      const botComment = (existingComments as PrComment[]).find(
+        (c) =>
           c.user === 'systemmapper-bot' ||
           c.body.includes('SystemMapper — Blast Radius Analysis'),
       );
@@ -126,9 +150,10 @@ export class BlastRadiusConsumer extends WorkerHost {
         );
         this.logger.log(`Comment posted! ID: ${commentId}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       this.logger.error(
-        `Failed to process Blast Radius for PR #${prNumber}: ${error.message}`,
+        `Failed to process Blast Radius for PR #${prNumber.toString()}: ${message}`,
       );
       throw error;
     }

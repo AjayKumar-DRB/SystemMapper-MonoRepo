@@ -1,5 +1,4 @@
 import { layoutHierarchicalGraph } from './layoutUtils';
-import { ElementDefinition } from 'cytoscape';
 
 self.onmessage = (e: MessageEvent) => {
   const { elements, layoutDir, collapsedNodesArray } = e.data;
@@ -9,7 +8,10 @@ self.onmessage = (e: MessageEvent) => {
     const layoutedElements = layoutHierarchicalGraph(elements, layoutDir, collapsedNodes);
 
     self.postMessage({ type: 'SUCCESS', layoutedElements });
-  } catch (error: any) {
-    self.postMessage({ type: 'ERROR', error: error.message });
+  } catch (error: unknown) {
+    self.postMessage({
+      type: 'ERROR',
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 };
