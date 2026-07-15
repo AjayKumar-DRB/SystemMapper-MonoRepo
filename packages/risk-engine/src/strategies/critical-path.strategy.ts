@@ -6,7 +6,7 @@ export class CriticalPathStrategy implements IRiskStrategy<CriticalPathResult> {
   description =
     'Identifies whether the changed files are on the critical path (longest dependency chain) of the repository.';
 
-  analyze(input: RiskAnalysisInput, context: StrategyContext): CriticalPathResult {
+  analyze(input: RiskAnalysisInput, _context: StrategyContext): CriticalPathResult {
     const { dependencyGraph, changedFiles } = input;
 
     // For MVP, we will use a simplified longest-path algorithm for DAGs.
@@ -23,7 +23,7 @@ export class CriticalPathStrategy implements IRiskStrategy<CriticalPathResult> {
     }
 
     // Calculate in-degrees
-    for (const [u, neighbors] of dependencyGraph.adjacencyList.entries()) {
+    for (const [, neighbors] of dependencyGraph.adjacencyList.entries()) {
       for (const v of neighbors) {
         if (!inDegrees.has(v)) inDegrees.set(v, 0);
         inDegrees.set(v, inDegrees.get(v)! + 1);

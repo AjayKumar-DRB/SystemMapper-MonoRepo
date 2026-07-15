@@ -10,4 +10,5 @@ import { VisualizationModule } from './features/visualization/visualization.modu
   controllers: [AppController],
   providers: [AppService],
 })
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class AppModule {}

@@ -29,7 +29,9 @@ const ICONS = {
   ),
 };
 
-export const graphStylesheet = (layoutDir: 'TB' | 'LR'): any[] => [
+import cytoscape from 'cytoscape';
+
+export const graphStylesheet = (_layoutDir: 'TB' | 'LR'): cytoscape.StylesheetStyle[] => [
   // ─── Base node: all node types
   {
     selector: 'node',
@@ -39,7 +41,7 @@ export const graphStylesheet = (layoutDir: 'TB' | 'LR'): any[] => [
       'text-halign': 'center',
       'font-family': 'Inter, system-ui, sans-serif',
       'font-size': '11.5px',
-      'font-weight': '600',
+      'font-weight': 'bold',
       'text-wrap': 'wrap',
       'text-max-width': '110px', // slightly less width for text due to icon
       'text-margin-x': 10, // push text to the right to make room for icon
@@ -57,7 +59,6 @@ export const graphStylesheet = (layoutDir: 'TB' | 'LR'): any[] => [
       color: '#334155',
       'border-width': '1px',
       'border-color': '#cbd5e1',
-      'box-shadow': '0 2px 4px rgba(0,0,0,0.05)',
       'transition-property': 'background-color, border-color, opacity, border-width',
       'transition-duration': 0.2,
     },
@@ -73,7 +74,7 @@ export const graphStylesheet = (layoutDir: 'TB' | 'LR'): any[] => [
       'text-margin-x': 28, // Push text for folder icon
       'text-margin-y': 10,
       'font-size': '12px',
-      'font-weight': '700',
+      'font-weight': 'bold',
       shape: 'round-rectangle',
       'background-color': '#f0fdf4',
       'background-opacity': 0.7,

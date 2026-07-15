@@ -11,10 +11,14 @@ import { graphStylesheet } from '../utils/graphStyles';
 if (typeof window !== 'undefined') {
   try {
     cytoscape.use(dagre);
-  } catch {}
+  } catch {
+    // ignore
+  }
   try {
     cytoscape.use(elk);
-  } catch {}
+  } catch {
+    // ignore
+  }
 }
 
 export interface BreadcrumbItem {
@@ -23,7 +27,7 @@ export interface BreadcrumbItem {
 }
 
 export interface CanvasProps {
-  elements: any[];
+  elements: cytoscape.ElementDefinition[];
   viewMode?: 'project' | 'component';
   /** When set, the canvas is showing only the subtree of this folder */
   focusedFolderId?: string;
@@ -41,7 +45,6 @@ export interface CanvasProps {
 export const Canvas: React.FC<CanvasProps> = ({
   elements,
   viewMode = 'project',
-  focusedFolderId,
   breadcrumb = [],
   onFolderDrillDown,
   onBreadcrumbNavigate,
@@ -50,12 +53,12 @@ export const Canvas: React.FC<CanvasProps> = ({
   const cyRef = useRef<cytoscape.Core | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const [selectedPath, setSelectedPath] = useState<string[]>([]);
-  const [layoutedElements, setLayoutedElements] = useState<any[]>([]);
+  const [layoutedElements, setLayoutedElements] = useState<cytoscape.ElementDefinition[]>([]);
   const [isLayouting, setIsLayouting] = useState(false);
   const [isLegendOpen, setIsLegendOpen] = useState(false);
   const [layoutDir, setLayoutDir] = useState<'TB' | 'LR'>('TB');
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
-  const prevElementsRef = useRef<any[]>([]);
+  const prevElementsRef = useRef<cytoscape.ElementDefinition[]>([]);
 
   // Initialize Web Worker for project view layout
   useEffect(() => {
@@ -241,9 +244,9 @@ export const Canvas: React.FC<CanvasProps> = ({
   const stylesheet = graphStylesheet(layoutDir);
 
   // Choose layout config based on view mode
-  const cytoscapeLayout: any =
+  const cytoscapeLayout =
     viewMode === 'component'
-      ? {
+      ? ({
           name: 'dagre',
           rankDir: layoutDir,
           nodeSep: 40,
@@ -253,8 +256,8 @@ export const Canvas: React.FC<CanvasProps> = ({
           animate: true,
           animationDuration: 400,
           fit: false,
-        }
-      : { name: 'preset', fit: false };
+        } as cytoscape.LayoutOptions)
+      : ({ name: 'preset', fit: false } as cytoscape.LayoutOptions);
 
   return (
     <div className="relative w-full h-screen bg-slate-50">
@@ -406,7 +409,7 @@ export const Canvas: React.FC<CanvasProps> = ({
           <CytoscapeComponent
             elements={layoutedElements}
             layout={cytoscapeLayout}
-            stylesheet={stylesheet as any}
+            stylesheet={stylesheet as unknown as cytoscape.StylesheetStyle[]}
             className="w-full h-full"
             wheelSensitivity={0.2}
             cy={(cy) => {

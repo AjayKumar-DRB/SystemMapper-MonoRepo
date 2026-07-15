@@ -2,7 +2,9 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { Canvas, NodeInspector, NodeData, BreadcrumbItem } from '@systemmapper/visualization';
+import { Canvas, NodeInspector } from '@systemmapper/visualization';
+import type { NodeData, BreadcrumbItem } from '@systemmapper/visualization';
+import type cytoscape from 'cytoscape';
 import { ControlPanel } from '@/components/graph/ControlPanel';
 import { API_BASE_URL } from '@/lib/api';
 
@@ -10,7 +12,7 @@ export default function CanvasPage() {
   const params = useParams();
   const repositoryId = params.repositoryId as string;
 
-  const [elements, setElements] = useState<any[]>([]);
+  const [elements, setElements] = useState<cytoscape.ElementDefinition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState<NodeData | null>(null);
   const [branches, setBranches] = useState<string[]>([]);
@@ -31,7 +33,7 @@ export default function CanvasPage() {
           `${API_BASE_URL}/api/visualization/repository/${repositoryId}/branches`,
         );
         if (res.ok) {
-          const data: string[] = await res.json();
+          const data = (await res.json()) as string[];
           setBranches(data);
           if (data.length > 0) setSelectedBranch(data[0]);
         }
@@ -41,7 +43,7 @@ export default function CanvasPage() {
         setIsBranchesLoaded(true);
       }
     }
-    fetchBranches();
+    void fetchBranches();
   }, [repositoryId]);
 
   // Fetch graph data whenever branch, view, or focused folder changes
@@ -62,7 +64,7 @@ export default function CanvasPage() {
         if (!res.ok) {
           throw new Error(`API returned ${res.status}`);
         }
-        const data = await res.json();
+        const data = (await res.json()) as cytoscape.ElementDefinition[];
 
         if (Array.isArray(data)) {
           setElements(data);
@@ -74,9 +76,9 @@ export default function CanvasPage() {
           setElements([]);
           setError('Unexpected response format from the server.');
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to fetch graph', err);
-        setError(err.message || 'Failed to load graph data.');
+        setError(err instanceof Error ? err.message : 'Failed to load graph data.');
       } finally {
         setIsLoading(false);
       }
@@ -86,11 +88,13 @@ export default function CanvasPage() {
 
   useEffect(() => {
     if (!isBranchesLoaded) return;
-    fetchGraph(selectedBranch || undefined, viewMode, focusedFolderId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchGraph(selectedBranch || undefined, viewMode, focusedFolderId);
   }, [selectedBranch, viewMode, focusedFolderId, fetchGraph, isBranchesLoaded]);
 
   // When view changes, reset drill-down state
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFocusedFolderId(undefined);
     setBreadcrumb([]);
   }, [viewMode]);

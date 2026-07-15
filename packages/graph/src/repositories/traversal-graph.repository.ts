@@ -1,8 +1,8 @@
 import { BaseGraphRepository } from './base-graph.repository';
 
 export interface BlastRadiusResult {
-  nodes: any[];
-  edges: any[];
+  nodes: unknown[];
+  edges: unknown[];
 }
 
 export class TraversalGraphRepository extends BaseGraphRepository {
@@ -14,12 +14,6 @@ export class TraversalGraphRepository extends BaseGraphRepository {
     filePath: string,
     maxDepth: number = 3,
   ): Promise<BlastRadiusResult> {
-    const query = `
-      MATCH (source:File {repositoryId: $repositoryId, filePath: $filePath})
-      CALL memgraph.bfs(source, "IMPORTS>", maxDepth) YIELD path
-      WITH nodes(path) AS nodes, relationships(path) AS rels
-      RETURN collect(distinct nodes) AS nodes, collect(distinct rels) AS edges
-    `;
 
     // In a real memgraph environment we'd use Memgraph's specific BFS/DFS path finding,
     // or standard neo4j path syntax `MATCH path = (source)-[:IMPORTS*1..maxDepth]->(target)`.
@@ -32,15 +26,15 @@ export class TraversalGraphRepository extends BaseGraphRepository {
       RETURN collect(distinct node) AS nodes, collect(distinct rel) AS edges
     `;
 
-    const results = await this.runQuery<any>(standardNeo4jQuery, { repositoryId, filePath });
+    const results = await this.runQuery<Record<string, unknown>>(standardNeo4jQuery, { repositoryId, filePath });
 
     if (results.length === 0) {
       return { nodes: [], edges: [] };
     }
 
     return {
-      nodes: results[0].nodes || [],
-      edges: results[0].edges || [],
+      nodes: (results[0].nodes as unknown[]) || [],
+      edges: (results[0].edges as unknown[]) || [],
     };
   }
 
@@ -49,11 +43,11 @@ export class TraversalGraphRepository extends BaseGraphRepository {
       MATCH (n {repositoryId: $repositoryId})
       RETURN count(n) as totalNodes
     `;
-    const results = await this.runQuery<any>(query, { repositoryId });
+    const results = await this.runQuery<Record<string, unknown>>(query, { repositoryId });
     return results[0] || { totalNodes: 0 };
   }
 
-  async getFullGraph(repositoryId: string, branch?: string): Promise<any> {
+  async getFullGraph(repositoryId: string, branch?: string): Promise<unknown> {
     const branchFilter = branch ? `WHERE n.branch = $branch` : '';
     const query = `
       MATCH (n {repositoryId: $repositoryId})
@@ -61,15 +55,15 @@ export class TraversalGraphRepository extends BaseGraphRepository {
       OPTIONAL MATCH (n)-[r]->(m)
       RETURN collect(distinct n) as nodes, collect(distinct r) as edges
     `;
-    const results = await this.runQuery<any>(query, {
+    const results = await this.runQuery<Record<string, unknown>>(query, {
       repositoryId,
       ...(branch ? { branch } : {}),
     });
     if (results.length === 0) return { nodes: [], edges: [] };
 
     return {
-      nodes: results[0].nodes || [],
-      edges: results[0].edges || [],
+      nodes: (results[0].nodes as unknown[]) || [],
+      edges: (results[0].edges as unknown[]) || [],
       fileIndex: new Map(),
       adjacencyList: new Map(),
       reverseAdjacencyList: new Map(),
@@ -80,7 +74,7 @@ export class TraversalGraphRepository extends BaseGraphRepository {
    * Returns all nodes and edges within the subtree of a specific folder.
    * Used by the Component View drill-down feature.
    */
-  async getSubtreeGraph(repositoryId: string, folderId: string, branch?: string): Promise<any> {
+  async getSubtreeGraph(repositoryId: string, folderId: string, branch?: string): Promise<unknown> {
     const branchParam = branch ? { branch } : {};
 
     // Find the root folder node, then collect everything reachable via CONTAINS,
@@ -95,12 +89,12 @@ export class TraversalGraphRepository extends BaseGraphRepository {
       RETURN collect(distinct n) AS nodes, collect(distinct r) AS edges
     `;
 
-    const results = await this.runQuery<any>(query, { folderId, ...branchParam });
+    const results = await this.runQuery<Record<string, unknown>>(query, { folderId, ...branchParam });
     if (results.length === 0) return { nodes: [], edges: [] };
 
     return {
-      nodes: results[0].nodes || [],
-      edges: results[0].edges || [],
+      nodes: (results[0].nodes as unknown[]) || [],
+      edges: (results[0].edges as unknown[]) || [],
     };
   }
 
@@ -110,8 +104,8 @@ export class TraversalGraphRepository extends BaseGraphRepository {
       WHERE n.branch IS NOT NULL
       RETURN collect(distinct n.branch) as branches
     `;
-    const results = await this.runQuery<any>(query, { repositoryId });
+    const results = await this.runQuery<Record<string, unknown>>(query, { repositoryId });
     if (results.length === 0) return [];
-    return results[0].branches || [];
+    return (results[0].branches as string[]) || [];
   }
 }

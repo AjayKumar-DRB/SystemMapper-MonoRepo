@@ -6,7 +6,7 @@ export class BlastRadiusStrategy implements IRiskStrategy<BlastRadiusResult> {
   description =
     'Calculates the transitive impact radius of the changed files via BFS on reverse dependencies.';
 
-  analyze(input: RiskAnalysisInput, context: StrategyContext): BlastRadiusResult {
+  analyze(input: RiskAnalysisInput, _context: StrategyContext): BlastRadiusResult {
     const { changedFiles, dependencyGraph, options } = input;
     const maxDepth = options.maxTraversalDepth;
     const affectedNodes = new Set<string>();

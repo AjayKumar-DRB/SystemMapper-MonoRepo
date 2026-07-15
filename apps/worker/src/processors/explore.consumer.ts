@@ -7,6 +7,18 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 
+interface ExploreJobData {
+  repositoryId: string;
+  url: string;
+  branch?: string;
+}
+
+interface ExploreJobResult {
+  repositoryId: string;
+  filesProcessed: number;
+  branches: string[];
+}
+
 @Processor(QueueNames.SCAN)
 export class ExploreConsumer extends WorkerHost {
   private readonly logger = new Logger(ExploreConsumer.name);
@@ -14,33 +26,26 @@ export class ExploreConsumer extends WorkerHost {
 
   /** Directories to skip during analysis */
   private readonly SKIP_DIRS = [
-    // Standard ignores
     '.git',
     'node_modules',
     'coverage',
-
-    // Generic build outputs
     'dist',
     'build',
     'out',
     '.cache',
     'tmp',
     'temp',
-
-    // Framework specific
-    '.next', // Next.js
-    '.nuxt', // Nuxt
-    '.output', // Nitro / Nuxt
-    '.svelte-kit', // SvelteKit
-    '.astro', // Astro
-    '.docusaurus', // Docusaurus
-    '.vuepress', // VuePress
-    '.serverless', // Serverless Framework
-    'storybook-static', // Storybook
-
-    // Monorepo specific
-    '.turbo', // Turborepo
-    '.nx', // Nx
+    '.next',
+    '.nuxt',
+    '.output',
+    '.svelte-kit',
+    '.astro',
+    '.docusaurus',
+    '.vuepress',
+    '.serverless',
+    'storybook-static',
+    '.turbo',
+    '.nx',
   ];
 
   constructor(
@@ -50,21 +55,23 @@ export class ExploreConsumer extends WorkerHost {
     this.githubProvider = new GithubProvider('', '');
   }
 
-  async process(job: Job<any, any, string>): Promise<any> {
+  async process(
+    job: Job<ExploreJobData>,
+  ): Promise<ExploreJobResult | undefined> {
     if (job.name !== 'repository-explore') {
-      return;
+      return undefined;
     }
 
     const { repositoryId, url, branch: requestedBranch } = job.data;
 
     if (!repositoryId || !url) {
-      const errMsg = `Explore job ${job.id} missing repositoryId or url.`;
+      const errMsg = `Explore job ${job.id ?? 'unknown'} missing repositoryId or url.`;
       this.logger.error(errMsg);
       throw new Error(errMsg);
     }
 
     this.logger.log(
-      `Processing explore job ${job.id} for ${repositoryId} (URL: ${url})`,
+      `Processing explore job ${job.id ?? 'unknown'} for ${repositoryId} (URL: ${url})`,
     );
 
     const urlParts = new URL(url).pathname.split('/').filter(Boolean);
@@ -75,19 +82,17 @@ export class ExploreConsumer extends WorkerHost {
     }
     const owner = urlParts[0];
     const repo = urlParts[1];
-    const token = process.env.GITHUB_TOKEN || undefined;
+    const token = process.env.GITHUB_TOKEN ?? undefined;
 
-    // Create a unique temp directory for this job
     const tempDir = path.join(
       os.tmpdir(),
-      `systemmapper_${job.id}_${Date.now()}`,
+      `systemmapper_${job.id ?? 'unknown'}_${Date.now().toString()}`,
     );
     this.logger.log(`Created temp directory: ${tempDir}`);
 
     try {
       await fs.mkdir(tempDir, { recursive: true });
 
-      // Stage 1: Clone repository (shallow, all branches)
       await job.updateProgress({ stage: 'cloning_repository', percent: 10 });
       this.logger.log(`Cloning ${owner}/${repo} into ${tempDir}...`);
 
@@ -109,23 +114,18 @@ export class ExploreConsumer extends WorkerHost {
         branches,
       });
 
-      // Stage 2: Determine which branches to process
-      // For now, process only the checked-out (default/requested) branch
-      // to keep jobs fast. Multi-branch can be a future enhancement.
       const branchesToProcess = requestedBranch
         ? [requestedBranch]
-        : [branches[0] || 'main'];
+        : [branches[0] ?? 'main'];
 
-      // Stage 2: Crawl files and build file content map
       await job.updateProgress({ stage: 'scanning_files', percent: 40 });
       const allFiles = await this.crawlDirectory(tempDir);
       const parseableFiles = allFiles.filter((f) => this.isParseableFile(f));
 
       this.logger.log(
-        `Found ${parseableFiles.length} parseable files to process.`,
+        `Found ${parseableFiles.length.toString()} parseable files to process.`,
       );
 
-      // Read all file contents into memory (with size guard)
       const MAX_BATCH_SIZE = 300;
       const fileContents: { filePath: string; content: string }[] = [];
 
@@ -143,16 +143,14 @@ export class ExploreConsumer extends WorkerHost {
             .relative(tempDir, filePath)
             .replace(/\\/g, '/');
           fileContents.push({ filePath: relativePath, content });
-        } catch (fileErr: any) {
-          this.logger.warn(
-            `Failed to read file ${filePath}: ${fileErr.message}`,
-          );
+        } catch (fileErr: unknown) {
+          const message =
+            fileErr instanceof Error ? fileErr.message : String(fileErr);
+          this.logger.warn(`Failed to read file ${filePath}: ${message}`);
         }
         fileIndex++;
       }
 
-      // Dispatch in batches — each batch gets the FULL list of all file paths
-      // so the import resolver can resolve cross-file imports correctly
       const allFilePaths = fileContents.map((f) => f.filePath);
       const batches: { filePath: string; content: string }[][] = [];
 
@@ -161,7 +159,7 @@ export class ExploreConsumer extends WorkerHost {
       }
 
       this.logger.log(
-        `Dispatching ${batches.length} batch parse job(s) covering ${fileContents.length} files.`,
+        `Dispatching ${batches.length.toString()} batch parse job(s) covering ${fileContents.length.toString()} files.`,
       );
 
       for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
@@ -170,31 +168,35 @@ export class ExploreConsumer extends WorkerHost {
 
         await this.parseQueue.add('repository-parse', {
           repositoryId,
-          scanId: `explore_${job.id}`,
-          files: batches[batchIdx], // array of {filePath, content}
-          allFilePaths, // full list for import resolution
+          scanId: `explore_${job.id ?? 'unknown'}`,
+          files: batches[batchIdx],
+          allFilePaths,
           branch: branchesToProcess[0],
         });
       }
 
       await job.updateProgress({ stage: 'completed', percent: 100 });
       this.logger.log(
-        `Explore job ${job.id} complete. Dispatched ${batches.length} parse batch(es).`,
+        `Explore job ${job.id ?? 'unknown'} complete. Dispatched ${batches.length.toString()} parse batch(es).`,
       );
 
       return { repositoryId, filesProcessed: fileContents.length, branches };
-    } catch (error: any) {
-      const errMsg = `Failed to explore repo ${url}: ${error.message}`;
-      this.logger.error(errMsg, error.stack);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+      const errMsg = `Failed to explore repo ${url}: ${message}`;
+      this.logger.error(errMsg, stack);
       throw new Error(errMsg);
     } finally {
-      // Always clean up the temp directory
       this.logger.log(`Cleaning up temp directory: ${tempDir}`);
-      await fs.rm(tempDir, { recursive: true, force: true }).catch((err) => {
-        this.logger.warn(
-          `Failed to clean up temp dir ${tempDir}: ${err.message}`,
-        );
-      });
+      await fs
+        .rm(tempDir, { recursive: true, force: true })
+        .catch((err: unknown) => {
+          const message = err instanceof Error ? err.message : String(err);
+          this.logger.warn(
+            `Failed to clean up temp dir ${tempDir}: ${message}`,
+          );
+        });
     }
   }
 
@@ -206,7 +208,6 @@ export class ExploreConsumer extends WorkerHost {
     const entries = await fs.readdir(dir, { withFileTypes: true });
 
     for (const entry of entries) {
-      // Skip unwanted directories
       if (this.SKIP_DIRS.includes(entry.name)) {
         continue;
       }

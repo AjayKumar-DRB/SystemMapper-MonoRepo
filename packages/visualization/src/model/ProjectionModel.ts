@@ -1,5 +1,8 @@
 export interface ProjectionModel {
   id: string;
-  nodes: any[];
-  edges: any[];
+  nodes: unknown[];
+  edges: unknown[];
 }
+
+export type FilterCriteria = Record<string, unknown>;
+export type GroupCriteria = Record<string, unknown>;

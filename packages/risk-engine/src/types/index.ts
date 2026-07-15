@@ -1,7 +1,7 @@
 export interface GraphNode {
   id: string;
   labels: string[];
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 export interface GraphEdge {
@@ -9,7 +9,7 @@ export interface GraphEdge {
   source: string;
   target: string;
   type: string;
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 export interface DependencyGraphData {

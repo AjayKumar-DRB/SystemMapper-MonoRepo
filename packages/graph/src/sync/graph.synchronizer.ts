@@ -1,7 +1,7 @@
 import { ParsedFile } from '@systemmapper/types';
 import { BaseGraphRepository } from '../repositories/base-graph.repository';
 import { NodeBuilder } from '../builders/node.builder';
-import { RelationshipBuilder } from '../builders/relationship.builder';
+
 import { CypherBuilder } from '../cypher/cypher.builder';
 import { MemgraphDriver } from '../driver/memgraph-driver';
 import { ManagedTransaction } from 'neo4j-driver';
@@ -203,7 +203,7 @@ export class GraphSynchronizer extends BaseGraphRepository {
   private async executeMerge(
     tx: ManagedTransaction,
     label: string,
-    properties: Record<string, any>,
+    properties: Record<string, unknown>,
   ) {
     const builder = new CypherBuilder()
       .merge(`${label}:Node`, 'n', `nodeId: $props.nodeId`)
@@ -218,7 +218,7 @@ export class GraphSynchronizer extends BaseGraphRepository {
     sourceId: string,
     targetId: string,
     type: string,
-    props: Record<string, any> = {},
+    props: Record<string, unknown> = {},
   ) {
     const builder = new CypherBuilder()
       .match('Node', 's', 'nodeId: $sourceId')
