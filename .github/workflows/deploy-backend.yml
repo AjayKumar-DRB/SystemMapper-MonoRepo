@@ -1,11 +1,10 @@
-name: 🚀 Deploy — Backend (Oracle Cloud)
+name: 🚀 Deploy — Backend (Oracle Cloud via GHCR)
 
 on:
-  # Manual trigger with configurable options
   workflow_dispatch:
     inputs:
       service:
-        description: "Which service(s) to deploy?"
+        description: "Which service(s) to build and deploy?"
         required: true
         default: "both"
         type: choice
@@ -21,9 +20,53 @@ on:
         options:
           - production
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
-  deploy-backend:
-    name: Deploy ${{ github.event.inputs.service }} to Oracle Cloud
+  build-and-push:
+    name: Build & Push Docker Image(s) to GHCR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push API Image
+        if: github.event.inputs.service == 'api' || github.event.inputs.service == 'both'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/systemmapper-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and Push Worker Image
+        if: github.event.inputs.service == 'worker' || github.event.inputs.service == 'both'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/worker/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/systemmapper-worker:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-to-oracle:
+    name: Deploy to Oracle Cloud
+    needs: build-and-push
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
 
@@ -36,8 +79,7 @@ jobs:
           fi
           echo "✅ Secrets validated."
 
-      - name: Deploy API only
-        if: github.event.inputs.service == 'api'
+      - name: SSH & Deploy Pre-built Containers
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.ORACLE_HOST }}
@@ -46,34 +88,8 @@ jobs:
           script: |
             cd ~/SystemMapper
             git pull origin main
-            docker compose -f docker-compose.prod.yml up -d --build api
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
             docker image prune -f
-            echo "✅ API deployed successfully."
-
-      - name: Deploy Worker only
-        if: github.event.inputs.service == 'worker'
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.ORACLE_HOST }}
-          username: ${{ secrets.ORACLE_USER }}
-          key: ${{ secrets.ORACLE_SSH_KEY }}
-          script: |
-            cd ~/SystemMapper
-            git pull origin main
-            docker compose -f docker-compose.prod.yml up -d --build worker
-            docker image prune -f
-            echo "✅ Worker deployed successfully."
-
-      - name: Deploy API + Worker (both)
-        if: github.event.inputs.service == 'both'
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.ORACLE_HOST }}
-          username: ${{ secrets.ORACLE_USER }}
-          key: ${{ secrets.ORACLE_SSH_KEY }}
-          script: |
-            cd ~/SystemMapper
-            git pull origin main
-            docker compose -f docker-compose.prod.yml up -d --build api worker
-            docker image prune -f
-            echo "✅ API + Worker deployed successfully."
+            echo "✅ Way B Deployment Successful!"
