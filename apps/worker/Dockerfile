@@ -18,6 +18,7 @@ RUN pnpm install --frozen-lockfile
 
 # Build the project
 COPY --from=builder /app/out/full/ .
+COPY --from=builder /app/tsconfig.base.json ./tsconfig.base.json
 RUN pnpm turbo run build --filter=worker...
 
 FROM node:20-alpine AS runner
