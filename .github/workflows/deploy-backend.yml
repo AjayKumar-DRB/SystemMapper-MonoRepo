@@ -76,6 +76,9 @@ jobs:
     environment: ${{ github.event.inputs.environment }}
 
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
       - name: Validate secrets
         run: |
           if [ -z "${{ secrets.ORACLE_HOST }}" ]; then
@@ -84,6 +87,15 @@ jobs:
           fi
           echo "✅ Secrets validated."
 
+      - name: Copy Compose file to Oracle (No Source Code)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ${{ secrets.ORACLE_USER }}
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          source: "docker-compose.prod.yml"
+          target: "~/SystemMapper"
+
       - name: SSH & Deploy Pre-built Containers
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -91,12 +103,10 @@ jobs:
           username: ${{ secrets.ORACLE_USER }}
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
+            mkdir -p ~/SystemMapper
             cd ~/SystemMapper
-            git fetch origin main
-            git checkout main
-            git reset --hard origin/main
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
             docker image prune -f
-            echo "✅ Way B Deployment Successful!"
+            echo "✅ 100% Zero-Source-Code Way B Deployment Successful!"
