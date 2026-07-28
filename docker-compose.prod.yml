@@ -46,6 +46,7 @@ services:
       - REDIS_PORT=6379
       - MEMGRAPH_HOST=memgraph
       - MEMGRAPH_PORT=7687
+      - CORS_ORIGIN=${CORS_ORIGIN:-}
     depends_on:
       - postgres
       - redis
