@@ -4,7 +4,11 @@ import { AppModule } from './app.module';
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   app.setGlobalPrefix('api');
-  const defaultOrigins = ['http://localhost:3000', 'http://localhost:3001'];
+  const defaultOrigins = [
+    'https://systemmapper.netlify.app',
+    'http://localhost:3000',
+    'http://localhost:3001',
+  ];
   const envOrigins = process.env.CORS_ORIGIN
     ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
     : [];
@@ -16,13 +20,7 @@ async function bootstrap(): Promise<void> {
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
     ) => {
-      if (
-        !origin ||
-        allowedOrigins.includes(origin) ||
-        allowedOrigins.includes('*') ||
-        origin.endsWith('.netlify.app') ||
-        origin.endsWith('.vercel.app')
-      ) {
+      if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error(`Origin ${origin} not allowed by CORS`));
