@@ -73,20 +73,6 @@ services:
       - redis
       - memgraph
 
-  web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-    container_name: systemmapper-web-prod
-    restart: always
-    ports:
-      - "3000:3000"
-    environment:
-      # If deploying to a server, this should be the public IP or Domain of the API
-      - NEXT_PUBLIC_API_URL=http://localhost:3001
-    depends_on:
-      - api
-
 volumes:
   memgraph_data:
   memgraph_log:
