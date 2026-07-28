@@ -16,6 +16,7 @@ COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 RUN pnpm install --frozen-lockfile
 
 COPY --from=builder /app/out/full/ .
+COPY --from=builder /app/tsconfig.base.json ./tsconfig.base.json
 RUN pnpm turbo run build --filter=web...
 
 FROM node:20-alpine AS runner
