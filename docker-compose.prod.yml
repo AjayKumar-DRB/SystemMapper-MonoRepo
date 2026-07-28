@@ -36,9 +36,6 @@ services:
   # Applications
   api:
     image: ghcr.io/ajaykumar-drb/systemmapper-api:latest
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
     container_name: systemmapper-api-prod
     restart: always
     ports:
@@ -56,9 +53,6 @@ services:
 
   worker:
     image: ghcr.io/ajaykumar-drb/systemmapper-worker:latest
-    build:
-      context: .
-      dockerfile: apps/worker/Dockerfile
     container_name: systemmapper-worker-prod
     restart: always
     environment:
