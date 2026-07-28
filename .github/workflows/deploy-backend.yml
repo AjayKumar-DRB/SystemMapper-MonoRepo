@@ -42,6 +42,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Lowercase Repository Owner Name
+        id: repo
+        run: |
+          echo "owner_lowercase=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
+
       - name: Build and Push API Image
         if: github.event.inputs.service == 'api' || github.event.inputs.service == 'both'
         uses: docker/build-push-action@v5
@@ -49,7 +54,7 @@ jobs:
           context: .
           file: apps/api/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/systemmapper-api:latest
+          tags: ghcr.io/${{ steps.repo.outputs.owner_lowercase }}/systemmapper-api:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -60,7 +65,7 @@ jobs:
           context: .
           file: apps/worker/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/systemmapper-worker:latest
+          tags: ghcr.io/${{ steps.repo.outputs.owner_lowercase }}/systemmapper-worker:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
