@@ -20,7 +20,13 @@ async function bootstrap(): Promise<void> {
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void,
     ) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      const normalizedOrigin = origin ? origin.replace(/\/$/, '') : undefined;
+      if (
+        !normalizedOrigin ||
+        allowedOrigins.some(
+          (allowed) => allowed.replace(/\/$/, '') === normalizedOrigin,
+        )
+      ) {
         callback(null, true);
       } else {
         callback(new Error(`Origin ${origin} not allowed by CORS`));
