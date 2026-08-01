@@ -46,6 +46,7 @@ services:
       - REDIS_PORT=6379
       - MEMGRAPH_HOST=memgraph
       - MEMGRAPH_PORT=7687
+      - MEMGRAPH_URI=bolt://memgraph:7687
       - CORS_ORIGIN=${CORS_ORIGIN:-}
     depends_on:
       - postgres
@@ -62,6 +63,7 @@ services:
       - REDIS_PORT=6379
       - MEMGRAPH_HOST=memgraph
       - MEMGRAPH_PORT=7687
+      - MEMGRAPH_URI=bolt://memgraph:7687
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
     depends_on:
       - postgres
