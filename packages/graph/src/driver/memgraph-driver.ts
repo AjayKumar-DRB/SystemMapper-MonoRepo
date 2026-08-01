@@ -4,12 +4,19 @@ export class MemgraphDriver {
   private static instance: Driver | null = null;
 
   static initialize(
-    uri: string = process.env.MEMGRAPH_URI || 'bolt://localhost:7687',
-    username: string = process.env.MEMGRAPH_USERNAME || '',
-    password: string = process.env.MEMGRAPH_PASSWORD || '',
+    uri?: string,
+    username?: string,
+    password?: string,
   ): Driver {
     if (!this.instance) {
-      this.instance = neo4j.driver(uri, neo4j.auth.basic(username, password), {
+      const host = process.env.MEMGRAPH_HOST || 'localhost';
+      const port = process.env.MEMGRAPH_PORT || '7687';
+      const connectionUri =
+        uri || process.env.MEMGRAPH_URI || `bolt://${host}:${port}`;
+      const user = username ?? process.env.MEMGRAPH_USERNAME ?? '';
+      const pass = password ?? process.env.MEMGRAPH_PASSWORD ?? '';
+
+      this.instance = neo4j.driver(connectionUri, neo4j.auth.basic(user, pass), {
         maxConnectionPoolSize: 50,
         connectionAcquisitionTimeout: 30000,
         connectionTimeout: 5000,
