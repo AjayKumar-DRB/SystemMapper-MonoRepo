@@ -21,6 +21,8 @@ if (typeof window !== 'undefined') {
   }
 }
 
+import { NodeData } from '../overlays/NodeInspector';
+
 export interface BreadcrumbItem {
   id: string;
   label: string;
@@ -33,8 +35,10 @@ export interface CanvasProps {
   focusedFolderId?: string;
   /** Breadcrumb trail for navigating back out of drilled folders */
   breadcrumb?: BreadcrumbItem[];
+  searchQuery?: string;
   onFolderDrillDown?: (folderId: string, folderLabel: string) => void;
   onBreadcrumbNavigate?: (folderId: string | null) => void;
+  onNodeSelect?: (node: NodeData | null) => void;
   renderOverlay?: (
     cy: cytoscape.Core | null,
     layoutDir: 'TB' | 'LR',
@@ -46,8 +50,10 @@ export const Canvas: React.FC<CanvasProps> = ({
   elements,
   viewMode = 'project',
   breadcrumb = [],
+  searchQuery = '',
   onFolderDrillDown,
   onBreadcrumbNavigate,
+  onNodeSelect,
   renderOverlay,
 }) => {
   const cyRef = useRef<cytoscape.Core | null>(null);
@@ -148,15 +154,80 @@ export const Canvas: React.FC<CanvasProps> = ({
     [viewMode, onFolderDrillDown],
   );
 
-  // Handle single click to trace path to root
+  // Handle single click to trace path to root and notify node selection
   const handleNodeClick = useCallback(
     (e: cytoscape.EventObject) => {
       const node = e.target;
       const path = traceToRoot(node.id(), elements);
       setSelectedPath(path);
+
+      if (onNodeSelect) {
+        const data = node.data();
+        const incomingEdges = node.incomers('edge');
+        const outgoingEdges = node.outgoers('edge');
+
+        const dependents = incomingEdges.map((edge: cytoscape.EdgeSingular) => {
+          const src = edge.source();
+          return {
+            id: src.id(),
+            label: src.data('label') || src.id(),
+            type: src.data('type') || 'component',
+          };
+        });
+
+        const dependencies = outgoingEdges.map((edge: cytoscape.EdgeSingular) => {
+          const tgt = edge.target();
+          return {
+            id: tgt.id(),
+            label: tgt.data('label') || tgt.id(),
+            type: tgt.data('type') || 'component',
+          };
+        });
+
+        const nodeData: NodeData = {
+          id: node.id(),
+          label: data.label || node.id(),
+          type: data.type || 'component',
+          language: data.language,
+          path: data.path || data.label || node.id(),
+          fanIn: data.fanIn ?? dependents.length,
+          fanOut: data.fanOut ?? dependencies.length,
+          riskScore: data.riskScore,
+          riskLevel: data.riskLevel,
+          dependents,
+          dependencies,
+        };
+
+        onNodeSelect(nodeData);
+      }
     },
-    [elements],
+    [elements, onNodeSelect],
   );
+
+  // Live node search highlight effect
+  useEffect(() => {
+    if (!cyRef.current) return;
+    const cy = cyRef.current;
+    if (!searchQuery || searchQuery.trim() === '') {
+      cy.batch(() => {
+        cy.elements().removeClass('dimmed').removeClass('searched');
+      });
+      return;
+    }
+
+    const q = searchQuery.toLowerCase().trim();
+    cy.batch(() => {
+      cy.elements().removeClass('searched').addClass('dimmed');
+      const matches = cy.nodes().filter((node) => {
+        const label = (node.data('label') || '').toLowerCase();
+        const id = (node.id() || '').toLowerCase();
+        const path = (node.data('path') || '').toLowerCase();
+        return label.includes(q) || id.includes(q) || path.includes(q);
+      });
+      matches.removeClass('dimmed').addClass('searched');
+      matches.connectedEdges().removeClass('dimmed').addClass('searched');
+    });
+  }, [searchQuery, layoutedElements]);
 
   // Highlight selected path
   useEffect(() => {
@@ -260,38 +331,38 @@ export const Canvas: React.FC<CanvasProps> = ({
       : ({ name: 'preset', fit: false } as cytoscape.LayoutOptions);
 
   return (
-    <div className="relative w-full h-screen bg-slate-50">
+    <div className="relative w-full h-full min-h-screen bg-slate-50 dark:bg-[#0B0E14]">
       {/* Loading Overlay */}
       {isLayouting && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 font-sans backdrop-blur-sm">
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-slate-200 text-center">
-            <div className="w-8 h-8 border-3 border-slate-200 border-t-indigo-500 rounded-full animate-spin mx-auto mb-3" />
-            <h2 className="text-slate-900 font-semibold text-base mb-1">Computing Layout…</h2>
-            <p className="text-slate-500 text-sm">{elements.length} elements</p>
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#0F1419]/80 font-sans backdrop-blur-md">
+          <div className="bg-[#182232] p-6 rounded-2xl shadow-2xl border border-white/10 text-center max-w-xs">
+            <div className="w-8 h-8 border-3 border-slate-700 border-t-[#06D6FF] rounded-full animate-spin mx-auto mb-3" />
+            <h2 className="text-white font-bold text-base mb-1">Computing Layout…</h2>
+            <p className="text-slate-400 text-xs font-mono">{elements.length} elements</p>
           </div>
         </div>
       )}
 
       {/* Breadcrumb (component view drill-down navigation) */}
       {viewMode === 'component' && breadcrumb.length > 0 && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 bg-white border border-slate-200 rounded-full shadow-md px-3 py-1.5 font-sans text-sm">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 bg-[#182232]/90 border border-white/10 rounded-full shadow-xl px-4 py-2 font-sans text-xs backdrop-blur-md">
           <button
             onClick={() => onBreadcrumbNavigate?.(null)}
-            className="text-indigo-600 hover:text-indigo-800 font-semibold transition-colors px-1"
+            className="text-[#06D6FF] hover:text-cyan-300 font-bold transition-colors px-1 border-none bg-transparent cursor-pointer"
           >
             🏠 All Folders
           </button>
           {breadcrumb.map((crumb, idx) => (
             <React.Fragment key={crumb.id}>
-              <span className="text-slate-400">›</span>
+              <span className="text-slate-500">›</span>
               <button
                 onClick={() =>
                   onBreadcrumbNavigate?.(idx === breadcrumb.length - 1 ? crumb.id : crumb.id)
                 }
-                className={`px-2 py-0.5 rounded-full transition-colors font-medium ${
+                className={`px-2.5 py-0.5 rounded-full transition-colors font-medium border-none bg-transparent cursor-pointer ${
                   idx === breadcrumb.length - 1
-                    ? 'bg-indigo-100 text-indigo-700 cursor-default'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    ? 'bg-[#06D6FF]/20 text-[#06D6FF] font-semibold'
+                    : 'text-slate-300 hover:text-white hover:bg-white/10'
                 }`}
               >
                 {crumb.label}
@@ -304,7 +375,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       {/* Bottom-left overlay: Legend + Control Panel */}
       <div className="absolute bottom-5 left-5 z-20 flex flex-col gap-2">
         {/* Legend */}
-        <div className="bg-white rounded-xl shadow-md border border-slate-200 font-sans overflow-hidden min-w-[220px] flex flex-col">
+        <div className="bg-[#182232]/90 backdrop-blur-md rounded-xl shadow-xl border border-white/10 font-sans overflow-hidden min-w-[240px] flex flex-col">
           <AnimatePresence initial={false}>
             {isLegendOpen && (
               <motion.div
@@ -314,50 +385,37 @@ export const Canvas: React.FC<CanvasProps> = ({
                 transition={{ duration: 0.25, ease: 'easeInOut' }}
                 style={{ overflow: 'hidden' }}
               >
-                <div className="p-4 border-b border-slate-200">
+                <div className="p-4 border-b border-white/10">
                   <div className="flex flex-col gap-2 text-xs">
                     {viewMode === 'project' ? (
                       <>
                         <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded bg-green-50 border-2 border-dashed border-green-500" />
-                          <span className="text-slate-700">Folder</span>
+                          <div className="w-4 h-4 rounded bg-[#064e3b] border border-[#2ECC71]" />
+                          <span className="text-slate-200">Folder</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded bg-amber-50 border-2 border-amber-500" />
-                          <span className="text-slate-700">External Package</span>
+                          <div className="w-4 h-4 rounded bg-[#452a0a] border border-[#FFC107]" />
+                          <span className="text-slate-200">External Package</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="w-12 h-0.5 bg-blue-300" />
-                          <span className="text-slate-700">IMPORTS (rolled-up)</span>
+                          <div className="w-4 h-4 rounded bg-[#451215] border border-[#FF4757]" />
+                          <span className="text-slate-200">High Risk Node</span>
                         </div>
                       </>
                     ) : (
                       <>
                         <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded bg-green-50 border-2 border-dashed border-green-500" />
-                          <span className="text-slate-700">Folder (container)</span>
+                          <div className="w-4 h-4 rounded bg-[#064e3b] border border-[#2ECC71]" />
+                          <span className="text-slate-200">Folder (container)</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded bg-slate-50 border-2 border-slate-500" />
-                          <span className="text-slate-700">File (component)</span>
+                          <div className="w-4 h-4 rounded bg-[#1E293B] border border-[#475569]" />
+                          <span className="text-slate-200">File (component)</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="w-12 h-0.5 bg-blue-300" />
-                          <span className="text-slate-700">IMPORTS edge</span>
+                          <div className="w-12 h-0.5 bg-[#06D6FF]" />
+                          <span className="text-slate-200">Selected Glow</span>
                         </div>
-                      </>
-                    )}
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-slate-200 text-[11px] text-slate-500 space-y-1">
-                    {viewMode === 'component' ? (
-                      <>
-                        <div>• Click: Highlight path</div>
-                        <div>• Double-click folder: Drill in</div>
-                      </>
-                    ) : (
-                      <>
-                        <div>• Click: Trace path to root</div>
-                        <div>• Double-click: Collapse/Expand</div>
                       </>
                     )}
                   </div>
@@ -367,10 +425,12 @@ export const Canvas: React.FC<CanvasProps> = ({
           </AnimatePresence>
           <div
             onClick={() => setIsLegendOpen((o) => !o)}
-            className="p-3 px-4 flex justify-between items-center cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors"
+            className="p-3 px-4 flex justify-between items-center cursor-pointer bg-white/5 hover:bg-white/10 transition-colors"
           >
-            <h3 className="text-sm font-semibold text-slate-900">Legend</h3>
-            <span className="text-xs text-slate-500">{isLegendOpen ? '▼' : '▲'}</span>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              Visual Legend
+            </h3>
+            <span className="text-xs text-slate-400">{isLegendOpen ? '▼' : '▲'}</span>
           </div>
         </div>
 
@@ -380,9 +440,11 @@ export const Canvas: React.FC<CanvasProps> = ({
 
       {/* Path to Root UI (project view) */}
       {viewMode === 'project' && selectedPath.length > 0 && (
-        <div className="absolute top-5 right-5 z-10 bg-white p-4 rounded-xl shadow-md border border-slate-200 font-sans max-w-[400px]">
-          <h3 className="text-sm font-semibold text-slate-900 mb-3">📍 Path to Root</h3>
-          <div className="text-sm font-semibold text-slate-700 flex flex-wrap gap-2 items-center">
+        <div className="absolute top-5 right-5 z-20 bg-[#182232]/90 backdrop-blur-xl p-4 rounded-xl shadow-xl border border-white/10 font-sans max-w-[400px]">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2.5 flex items-center gap-1.5">
+            📍 Path to Root
+          </h3>
+          <div className="text-xs font-medium text-slate-200 flex flex-wrap gap-2 items-center">
             {selectedPath
               .slice()
               .reverse()
@@ -390,8 +452,8 @@ export const Canvas: React.FC<CanvasProps> = ({
                 const node = elements.find((e) => e.data.id === nodeId);
                 return (
                   <React.Fragment key={nodeId}>
-                    {idx > 0 && <span className="text-blue-400">→</span>}
-                    <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">
+                    {idx > 0 && <span className="text-[#06D6FF]">→</span>}
+                    <span className="bg-black/40 px-2.5 py-1 rounded-md text-white font-mono text-[11px] border border-white/5">
                       {node?.data.label || nodeId}
                     </span>
                   </React.Fragment>

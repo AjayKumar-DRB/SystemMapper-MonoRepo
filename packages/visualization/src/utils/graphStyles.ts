@@ -32,7 +32,7 @@ const ICONS = {
 import cytoscape from 'cytoscape';
 
 export const graphStylesheet = (_layoutDir: 'TB' | 'LR'): cytoscape.StylesheetStyle[] => [
-  // ─── Base node: all node types
+  // ─── Base node: all node types (Dark Charcoal theme)
   {
     selector: 'node',
     style: {
@@ -43,22 +43,22 @@ export const graphStylesheet = (_layoutDir: 'TB' | 'LR'): cytoscape.StylesheetSt
       'font-size': '11.5px',
       'font-weight': 'bold',
       'text-wrap': 'wrap',
-      'text-max-width': '110px', // slightly less width for text due to icon
-      'text-margin-x': 10, // push text to the right to make room for icon
+      'text-max-width': '110px',
+      'text-margin-x': 10,
       shape: 'round-rectangle',
       width: '160px',
       height: '40px',
       padding: '10px',
-      'background-color': '#ffffff',
+      'background-color': '#1E293B',
       'background-image': ICONS.file,
       'background-fit': 'none',
       'background-position-x': '12px',
       'background-position-y': '50%',
       'background-width': '20px',
       'background-height': '20px',
-      color: '#334155',
+      color: '#F8FAFC',
       'border-width': '1px',
-      'border-color': '#cbd5e1',
+      'border-color': '#334155',
       'transition-property': 'background-color, border-color, opacity, border-width',
       'transition-duration': 0.2,
     },
@@ -71,23 +71,23 @@ export const graphStylesheet = (_layoutDir: 'TB' | 'LR'): cytoscape.StylesheetSt
       label: 'data(label)',
       'text-valign': 'top',
       'text-halign': 'left',
-      'text-margin-x': 28, // Push text for folder icon
+      'text-margin-x': 28,
       'text-margin-y': 10,
       'font-size': '12px',
       'font-weight': 'bold',
       shape: 'round-rectangle',
-      'background-color': '#f0fdf4',
-      'background-opacity': 0.7,
+      'background-color': '#064e3b',
+      'background-opacity': 0.35,
       'background-image': ICONS.folder,
       'background-fit': 'none',
       'background-position-x': '12px',
       'background-position-y': '12px',
       'background-width': '16px',
       'background-height': '16px',
-      'border-color': '#22c55e',
-      'border-style': 'solid', // Solid instead of dashed for a cleaner modern look
-      'border-width': '2px',
-      color: '#15803d',
+      'border-color': '#2ECC71',
+      'border-style': 'solid',
+      'border-width': '1.5px',
+      color: '#A7F3D0',
       padding: '40px 16px 16px 16px',
       'min-width': '180px',
       'min-height': '80px',
@@ -98,11 +98,11 @@ export const graphStylesheet = (_layoutDir: 'TB' | 'LR'): cytoscape.StylesheetSt
   {
     selector: 'node[type = "folder"], node[type = "directory"]',
     style: {
-      'background-color': '#f0fdf4',
+      'background-color': '#064e3b',
       'background-image': ICONS.folder,
-      'border-color': '#22c55e',
-      color: '#15803d',
-      'border-width': '2px',
+      'border-color': '#2ECC71',
+      color: '#A7F3D0',
+      'border-width': '1.5px',
     },
   },
 
@@ -122,8 +122,8 @@ export const graphStylesheet = (_layoutDir: 'TB' | 'LR'): cytoscape.StylesheetSt
   {
     selector: 'node[type = "file"]',
     style: {
-      'background-color': '#ffffff',
-      'border-color': '#94a3b8',
+      'background-color': '#1E293B',
+      'border-color': '#475569',
     },
   },
 
@@ -131,11 +131,11 @@ export const graphStylesheet = (_layoutDir: 'TB' | 'LR'): cytoscape.StylesheetSt
   {
     selector: 'node[type = "external"]',
     style: {
-      'background-color': '#fef3c7',
+      'background-color': '#452a0a',
       'background-image': ICONS.external,
-      'border-color': '#d97706',
-      'border-width': '1px',
-      color: '#92400e',
+      'border-color': '#FFC107',
+      'border-width': '1.5px',
+      color: '#FDE68A',
       'font-size': '10px',
       width: '140px',
       height: '36px',
@@ -146,10 +146,10 @@ export const graphStylesheet = (_layoutDir: 'TB' | 'LR'): cytoscape.StylesheetSt
   {
     selector: 'node[type = "project"]',
     style: {
-      'background-color': '#eff6ff',
-      'background-image': ICONS.folder, // Project is just a root folder
-      'border-color': '#3b82f6',
-      color: '#1e3a8a',
+      'background-color': '#0c4a6e',
+      'background-image': ICONS.folder,
+      'border-color': '#06D6FF',
+      color: '#BAE6FD',
       'font-size': '12px',
       height: '44px',
     },
@@ -160,12 +160,12 @@ export const graphStylesheet = (_layoutDir: 'TB' | 'LR'): cytoscape.StylesheetSt
     selector: 'edge',
     style: {
       width: 1.5,
-      'curve-style': 'taxi', // Orthogonal routing!
+      'curve-style': 'taxi',
       'taxi-direction': 'auto',
-      'taxi-turn': '12px', // Rounded corners
+      'taxi-turn': '12px',
       'arrow-scale': 1.1,
-      'line-color': '#94a3b8',
-      'target-arrow-color': '#94a3b8',
+      'line-color': '#475569',
+      'target-arrow-color': '#475569',
       opacity: 0.85,
     },
   },
@@ -174,8 +174,8 @@ export const graphStylesheet = (_layoutDir: 'TB' | 'LR'): cytoscape.StylesheetSt
   {
     selector: 'edge[type = "CONTAINS"]',
     style: {
-      'line-color': '#86efac',
-      'target-arrow-color': '#86efac',
+      'line-color': '#2ECC71',
+      'target-arrow-color': '#2ECC71',
       'target-arrow-shape': 'triangle',
       'line-style': 'solid',
       width: 2,
@@ -186,12 +186,8 @@ export const graphStylesheet = (_layoutDir: 'TB' | 'LR'): cytoscape.StylesheetSt
   {
     selector: 'edge[type = "IMPORTS"]',
     style: {
-      // Hide the label for cleaner modern look, or keep it subtle?
-      // The user said: "leave the part where to code itself is shown, we do not need that."
-      // Assuming they meant clean edges. The reference image has clean unlabelled edges.
-      // We'll remove the 'imports' label to reduce visual noise.
-      'line-color': '#93c5fd',
-      'target-arrow-color': '#93c5fd',
+      'line-color': '#38BDF8',
+      'target-arrow-color': '#38BDF8',
       'target-arrow-shape': 'vee',
       'line-style': 'solid',
       width: 1.5,
@@ -199,14 +195,53 @@ export const graphStylesheet = (_layoutDir: 'TB' | 'LR'): cytoscape.StylesheetSt
     },
   },
 
-  // ─── Highlighted state
+  // ─── Risk-score visual indicators
   {
-    selector: '.highlighted',
+    selector: 'node[riskLevel = "HIGH"], node[riskScore >= 70]',
+    style: {
+      'background-color': '#451215',
+      'border-color': '#FF4757',
+      'border-width': '2px',
+      color: '#FECDD3',
+    },
+  },
+  {
+    selector: 'node[riskLevel = "MEDIUM"], node[riskScore >= 40][riskScore < 70]',
+    style: {
+      'background-color': '#452a0a',
+      'border-color': '#FFC107',
+      'border-width': '2px',
+      color: '#FDE68A',
+    },
+  },
+
+  // ─── Searched & Dimmed states for live node search
+  {
+    selector: '.searched',
     style: {
       'border-width': '3px',
-      'border-color': '#ef4444',
-      'line-color': '#ef4444',
-      'target-arrow-color': '#ef4444',
+      'border-color': '#06D6FF',
+      'line-color': '#06D6FF',
+      'target-arrow-color': '#06D6FF',
+      'z-index': 9999,
+      opacity: 1,
+    },
+  },
+  {
+    selector: '.dimmed',
+    style: {
+      opacity: 0.2,
+    },
+  },
+
+  // ─── Highlighted / Selected state (Bright Teal Accent)
+  {
+    selector: '.highlighted, node:selected',
+    style: {
+      'border-width': '3px',
+      'border-color': '#06D6FF',
+      'line-color': '#06D6FF',
+      'target-arrow-color': '#06D6FF',
       'z-index': 9999,
       opacity: 1,
       width: 3,
@@ -218,7 +253,7 @@ export const graphStylesheet = (_layoutDir: 'TB' | 'LR'): cytoscape.StylesheetSt
     selector: 'node:active',
     style: {
       'border-width': '3px',
-      'border-color': '#6366f1',
+      'border-color': '#06D6FF',
     },
   },
 ];
